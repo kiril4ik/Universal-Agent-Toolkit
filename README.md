@@ -86,6 +86,7 @@ Add `--dry-run` to see every file that would change before anything does.
 ```bash
 ./bin/uat install --project ~/app --agent cursor --profile nextjs
 ./bin/uat install --project ~/app --agent claude-code --agent cursor
+./bin/uat workflow  --project ~/app     # planning progress and next step
 ./bin/uat status    --project ~/app     # what is installed, and local drift
 ./bin/uat uninstall --project ~/app     # removes only what it created
 ```
@@ -144,6 +145,43 @@ Every other agent gets the same content as plain Markdown it can read.
 Triage picks the depth: a one-line fix runs discovery and stops; a new product
 runs everything. **Phase 11 is never skipped** — nothing is implemented until
 the artifacts are checked against each other and a human approves.
+
+### How you actually start it
+
+Installing generates the trigger, not just the documentation.
+
+**Claude Code** gets real slash commands:
+
+```
+/plan <what you want to build>    run the workflow from triage
+/plan-status                      show progress without advancing
+/plan-resume                      pick up where it stopped
+```
+
+**Every other agent** gets the same instruction as a prompt, in
+`.agent-toolkit/START-HERE.md`:
+
+> Read `.agent-toolkit/workflow/README.md` and run the planning workflow.
+> Start with triage, tell me the classification and which phases apply, then
+> work through them in order. Stop at the gate for my approval.
+
+Check progress from the shell at any time:
+
+```bash
+uat workflow --project .
+```
+
+```
+  done  01  discovery              reports/01-discovery.md
+  done  02  business logic         docs/business-logic.md
+  next  03  screens & flows        docs/screens.md
+    -   04  content                docs/content/
+```
+
+Phases 06 and 07 close the loop: once the stack is decided, the workflow tells
+the agent to run `uat detect` and `uat install --add <pack>` so the rules for
+that stack land in the project. You start with core packs and grow into the
+stack you actually chose — not the one you guessed at install time.
 
 ## Provenance is enforced, not claimed
 

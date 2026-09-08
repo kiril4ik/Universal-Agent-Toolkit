@@ -253,6 +253,14 @@ def cmd_install(args) -> int:
             print()
             return 1
 
+    # Embed first: the generated files reference the CLI, and an embedded
+    # launcher is the portable answer. Doing this afterwards would bake this
+    # checkout's absolute path into the project.
+    if args.embed:
+        _do_embed(project, with_vendor=args.with_vendor, force=args.force,
+                  verbose=args.verbose)
+        print()
+
     result = inst.execute(plan, TOOLKIT_ROOT, force=args.force)
     rendered = result.report.render(project, verbose=args.verbose)
     if rendered:
@@ -273,11 +281,6 @@ def cmd_install(args) -> int:
         print(bold("Manual steps required:"))
         for n in dict.fromkeys(result.notes):
             print(f"  - {n}")
-
-    if args.embed:
-        print()
-        _do_embed(project, with_vendor=args.with_vendor, force=args.force,
-                  verbose=args.verbose)
 
     print()
     print(green(bold("Installed.")) + " Next:")
@@ -320,6 +323,81 @@ def cmd_embed(args) -> int:
         )
     _do_embed(project, with_vendor=args.with_vendor, force=args.force,
               verbose=args.verbose)
+    return 0
+
+
+PHASES = [
+    ("00", "triage", "class + phase list"),
+    ("01", "discovery", "reports/01-discovery.md"),
+    ("02", "business logic", "docs/business-logic.md"),
+    ("03", "screens & flows", "docs/screens.md"),
+    ("04", "content", "docs/content/"),
+    ("05", "design", "docs/design/"),
+    ("06", "stack", "docs/stack.md"),
+    ("07", "rules", "installed rule packs"),
+    ("08", "architecture", "docs/architecture.md"),
+    ("09", "environments", "Docker + deploy"),
+    ("10", "implementation plan", "docs/plan.md"),
+    ("11", "GATE", "go / no-go"),
+]
+
+
+def cmd_workflow(args) -> int:
+    """Show how far the planning workflow has progressed."""
+    project = _project(args)
+    toolkit = project / inst.TOOLKIT_DIR
+    if not toolkit.is_dir():
+        raise ToolkitError(f"no toolkit installed in {project}")
+
+    reports = toolkit / "reports"
+    done = {}
+    if reports.is_dir():
+        for f in reports.glob("*.md"):
+            if f.name == "README.md":
+                continue
+            done[f.name[:2]] = f
+
+    doc = inst.read_json(toolkit / inst.PROJECT_FILE, default={})
+    print(bold(f"Planning workflow: {project.name}"))
+    print(f"  mode      {doc.get('mode', 'unknown')}")
+    print(f"  agents    {', '.join(doc.get('agents', [])) or '-'}")
+    print()
+
+    next_phase = None
+    for num, name, produces in PHASES:
+        if num in done:
+            mark = green("done")
+        elif next_phase is None and num != "00":
+            mark = yellow("next")
+            next_phase = (num, name)
+        else:
+            mark = dim("  - ")
+        label = bold(name) if num == "11" else name
+        print(f"  {mark}  {num}  {label:<22} {dim(produces)}")
+
+    print()
+    if not done:
+        print("  nothing started yet.")
+    elif next_phase is None:
+        print(green("  all phases have reports."))
+
+    uat = f"./{inst.TOOLKIT_DIR}/toolkit/uat" \
+        if (toolkit / "toolkit" / "uat").is_file() else "uat"
+    start_here = toolkit / "START-HERE.md"
+
+    print()
+    print(bold("  To continue, give your agent:"))
+    print(cyan(f"    Read {inst.TOOLKIT_DIR}/workflow/README.md and run the planning"))
+    print(cyan("    workflow. Start with triage, tell me the classification and"))
+    print(cyan("    which phases apply, then work through them in order. Stop at"))
+    print(cyan("    the gate for my approval."))
+    if (project / ".claude" / "commands" / "plan.md").is_file():
+        print()
+        print(dim("  Claude Code:  /plan <what to build>   /plan-status   /plan-resume"))
+    if start_here.is_file():
+        print()
+        print(dim(f"  Full guide:   {inst.TOOLKIT_DIR}/START-HERE.md"))
+    print(dim(f"  Progress:     {uat} workflow --project ."))
     return 0
 
 
@@ -505,6 +583,10 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--with-vendor", action="store_true",
                    help="with --embed, include every vendored upstream (fully offline, larger)")
     i.set_defaults(func=cmd_install)
+
+    w = sub.add_parser("workflow", help="show planning workflow progress")
+    w.add_argument("--project", default=".")
+    w.set_defaults(func=cmd_workflow)
 
     s = sub.add_parser("status", help="show install state and local drift")
     s.add_argument("--project", default=".")

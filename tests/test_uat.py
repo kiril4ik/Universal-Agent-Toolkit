@@ -407,6 +407,62 @@ class TestRenderedContext(TempProject):
 
 
 # ----------------------------------------------------------------------
+class TestWorkflowTrigger(TempProject):
+    """The workflow is useless if there is no way to start it."""
+
+    def test_claude_gets_slash_commands(self):
+        self.install(["claude-code"])
+        cmds = self.project / ".claude/commands"
+        for name in ("plan.md", "plan-status.md", "plan-resume.md"):
+            self.assertTrue((cmds / name).is_file(), name)
+
+    def test_plan_command_has_frontmatter(self):
+        self.install(["claude-code"])
+        text = (self.project / ".claude/commands/plan.md").read_text()
+        self.assertTrue(text.startswith("---\n"))
+        self.assertIn("description:", text)
+        self.assertIn("$ARGUMENTS", text)
+
+    def test_plan_command_enforces_the_gate(self):
+        self.install(["claude-code"])
+        text = (self.project / ".claude/commands/plan.md").read_text()
+        self.assertIn("11-gate.md", text)
+        self.assertIn("wait for", text.lower())
+
+    def test_agents_without_commands_get_no_command_dir(self):
+        self.install(["cursor"])
+        self.assertFalse((self.project / ".claude").exists())
+        self.assertTrue((self.project / ".agent-toolkit/START-HERE.md").is_file())
+
+    def test_start_here_exists_for_every_agent(self):
+        for agent in ("claude-code", "cursor", "codex", "aider"):
+            with self.subTest(agent=agent):
+                self.setUp()
+                self.install([agent])
+                self.assertTrue(
+                    (self.project / ".agent-toolkit/START-HERE.md").is_file()
+                )
+
+    def test_no_machine_specific_paths_are_baked_in(self):
+        """These files get committed; a path from one machine breaks everyone."""
+        self.install(["claude-code"])
+        home = str(Path.home())
+        for rel in (".agent-toolkit/CORE.md", ".agent-toolkit/START-HERE.md",
+                    ".claude/commands/plan.md"):
+            text = (self.project / rel).read_text()
+            self.assertNotIn(home, text, f"{rel} leaks an absolute home path")
+            self.assertNotIn(str(ROOT), text, f"{rel} leaks the toolkit checkout path")
+
+    def test_embedded_install_uses_the_embedded_launcher(self):
+        self.install(["claude-code"])
+        embedlib.embed(ROOT, self.project, with_vendor=False, force=False,
+                       report=Report())
+        # re-render now that the launcher exists
+        self.install(["claude-code"], force=True)
+        text = (self.project / ".claude/commands/plan.md").read_text()
+        self.assertIn("./.agent-toolkit/toolkit/uat", text)
+
+
 class TestEmbedding(TempProject):
     """Embedding must keep the project self-contained without adding folders."""
 

@@ -30,6 +30,23 @@ class RenderContext:
     has_workflow: bool
     has_deploy: bool
     skills_mount: str | None = None   # tool-native skills path, if any
+    uat_cmd: str = "uat"              # how to invoke the CLI from this project
+
+
+def uat_invocation(project, toolkit_root) -> str:
+    """The exact command that runs the CLI for THIS project.
+
+    An embedded copy is preferred, because it keeps working if the factory
+    checkout moves or disappears.
+    """
+    embedded = project / TOOLKIT_DIR / "toolkit" / "uat"
+    if embedded.is_file():
+        return f"./{TOOLKIT_DIR}/toolkit/uat"
+    # Deliberately NOT the absolute path of this checkout: these strings are
+    # written into files that get committed and shared, where a path from one
+    # developer's machine is worse than useless. Plain `uat` is portable, and
+    # START-HERE.md explains where it comes from.
+    return "uat"
 
 
 def _rule_lines(ctx: RenderContext) -> str:
@@ -57,12 +74,40 @@ def core_md(ctx: RenderContext) -> str:
         f"""
 ## Starting or planning work
 
-Follow `{TOOLKIT_DIR}/workflow/README.md`. It defines the phase sequence
-(discovery -> business logic -> screens & flows -> content -> design ->
-stack -> architecture -> plan) and the gate that must pass before any
-implementation begins.
+**Entry point: `{TOOLKIT_DIR}/workflow/README.md`.** Read it before doing
+anything on a new project, a new feature, or an unfamiliar codebase.
 
-Each completed phase writes a short report to `{TOOLKIT_DIR}/reports/`.
+The sequence: triage -> discovery -> business logic -> screens & flows ->
+content -> design -> stack -> rules -> architecture -> environments -> plan
+-> gate. Triage decides how much of it applies; a one-line fix runs discovery
+and stops.
+
+**Nothing is implemented until the gate in `workflow/11-gate.md` passes and a
+human approves.**
+
+Each completed phase writes a short report to `{TOOLKIT_DIR}/reports/`. Read
+those first when resuming - they are the decision log.
+
+Check progress at any time:
+
+```bash
+{ctx.uat_cmd} workflow --project .
+```
+
+## Managing this install
+
+Rules are installed per technology. When phase 06 settles the stack, phase 07
+installs the matching rules - do not hand-write what a pack already provides:
+
+```bash
+{ctx.uat_cmd} detect  --project .                       # what stack is here
+{ctx.uat_cmd} catalog                                   # what packs exist
+{ctx.uat_cmd} install --project . --agent {ctx.agents[0] if ctx.agents else 'claude-code'} --add <pack>
+{ctx.uat_cmd} status  --project .                       # installed + local drift
+```
+
+Installing is additive and idempotent; existing files are never overwritten
+without `--force`.
 """
         if ctx.has_workflow
         else ""
@@ -201,3 +246,185 @@ def preserve_user_tail(existing: str, new_generated: str) -> str:
     if not tail.strip():
         return new_generated
     return new_generated.rstrip("\n") + "\n" + tail
+
+
+# ----------------------------------------------------------------------
+# Workflow entry points
+# ----------------------------------------------------------------------
+#
+# The workflow is only useful if it is easy to trigger. Claude Code gets real
+# slash commands; every other agent gets the same instruction as a prompt it
+# can be given directly (see START-HERE.md).
+
+_PLAN_COMMAND = """---
+description: Run the project planning workflow (triage -> ... -> gate)
+argument-hint: [what you want to build]
+---
+
+Run the project planning workflow defined in `{toolkit}/workflow/README.md`.
+
+The request: $ARGUMENTS
+
+Follow it exactly, in order:
+
+1. **Read `{toolkit}/workflow/README.md` first.** Do not work from memory of
+   what a planning process usually looks like.
+2. **Triage** (`workflow/00-triage.md`). Classify the work as task, feature or
+   product. Say the classification and which phases you will run and skip, and
+   why, before going further.
+3. **Check what already exists.** Read `{toolkit}/reports/` - if phases were
+   already completed, resume rather than redo them.
+4. **Run each phase in order**, using its own file in `{toolkit}/workflow/`.
+   Each phase writes its report to `{toolkit}/reports/NN-phase.md` using
+   `workflow/templates/report.md`.
+5. **Respect the interaction mode** in `{toolkit}/project.json` (currently
+   `{mode}`). It controls how much you ask, never whether safety gates apply.
+6. **When the stack is decided (phase 06), install its rules (phase 07)**:
+   `{uat} detect --project .` then `{uat} install --project . --agent {agent} --add <pack>`.
+   Do not hand-write rules a pack already provides.
+7. **Stop at the gate** (`workflow/11-gate.md`). Present the plan and wait for
+   explicit approval. Do not begin implementing in the same message.
+
+Use the installed skills where they apply - `brainstorming` for design
+exploration, `writing-plans` for the implementation plan, and
+`verification-before-completion` before claiming anything is finished.
+
+Batch your questions. Never ask what the repository already answers.
+"""
+
+_PLAN_STATUS_COMMAND = """---
+description: Show planning workflow progress for this project
+---
+
+Report the state of the project planning workflow.
+
+1. Run `{uat} workflow --project .` and show the output.
+2. Read every report in `{toolkit}/reports/` and summarise, in a few lines
+   each: what was decided, what assumptions are outstanding, and what
+   questions are still open.
+3. State clearly which phase comes next and what it needs from the human.
+
+Do not start the next phase. This command only reports.
+"""
+
+_RESUME_COMMAND = """---
+description: Resume the planning workflow where it stopped
+---
+
+Resume the project planning workflow.
+
+1. Read `{toolkit}/workflow/README.md` and `{toolkit}/project.json`.
+2. Read every existing report in `{toolkit}/reports/` - these are decisions
+   already made. Do not re-litigate them; if one looks wrong, say so and ask.
+3. Identify the first phase with no report, and continue from there.
+4. Follow that phase's file exactly and write its report on completion.
+
+If all phases through 10 have reports, run the gate (`workflow/11-gate.md`)
+and stop for approval.
+"""
+
+START_HERE = """# Start here
+
+This project is configured by the Universal Agent Toolkit.
+
+## To plan a project, a feature, or work on an unfamiliar codebase
+
+Give your agent this instruction:
+
+> Read `{toolkit}/workflow/README.md` and run the planning workflow.
+> Start with triage, tell me the classification and which phases apply,
+> then work through them in order. Stop at the gate for my approval.
+
+{claude_note}
+## To check progress
+
+```bash
+{uat} workflow --project .
+```
+
+Reports for completed phases are in `{toolkit}/reports/`. Read those before
+resuming - they are the project's decision log.
+
+## The sequence
+
+| # | Phase | Produces |
+|---|---|---|
+| 00 | triage | class + phase list |
+| 01 | discovery | reports/01-discovery.md |
+| 02 | business logic | docs/business-logic.md |
+| 03 | screens & flows | docs/screens.md |
+| 04 | content | docs/content/ |
+| 05 | design | docs/design/ |
+| 06 | stack | docs/stack.md |
+| 07 | rules | installed rule packs |
+| 08 | architecture | docs/architecture.md |
+| 09 | environments | Docker + deploy scripts |
+| 10 | implementation plan | docs/plan.md |
+| 11 | **gate** | go / no-go - **never skipped** |
+
+Triage decides how many of these apply. A one-line fix runs 01 and stops; a
+new product runs everything.
+
+## Installing rules for a new technology
+
+```bash
+{uat} detect  --project .
+{uat} catalog
+{uat} install --project . --agent {agent} --add <pack>
+```
+
+{uat_note}
+"""
+
+_CLAUDE_NOTE = """Claude Code has slash commands for this:
+
+```
+/plan <what you want to build>    start or continue the workflow
+/plan-status                      show progress without advancing
+/plan-resume                      pick up where it stopped
+```
+
+"""
+
+
+def claude_commands(ctx: RenderContext) -> dict[str, str]:
+    """Slash command files for Claude Code, keyed by filename."""
+    agent = ctx.agents[0] if ctx.agents else "claude-code"
+    fmt = dict(toolkit=TOOLKIT_DIR, uat=ctx.uat_cmd, agent=agent, mode=ctx.mode)
+    return {
+        "plan.md": _PLAN_COMMAND.format(**fmt),
+        "plan-status.md": _PLAN_STATUS_COMMAND.format(**fmt),
+        "plan-resume.md": _RESUME_COMMAND.format(**fmt),
+    }
+
+
+_EXTERNAL_NOTE = """`uat` lives in the Universal Agent Toolkit checkout, not in this project.
+Either put its `bin/` on your PATH, or call it by path:
+
+```bash
+/path/to/universal-agent-toolkit/bin/uat status --project .
+```
+
+To remove that dependency entirely, embed the toolkit into this project:
+
+```bash
+/path/to/universal-agent-toolkit/bin/uat embed --project . --with-vendor
+```
+
+After that, use `./.agent-toolkit/toolkit/uat` and nothing external is needed.
+"""
+
+_EMBEDDED_NOTE = """The toolkit is embedded in this project at
+`.agent-toolkit/toolkit/`, so these commands need nothing installed elsewhere.
+"""
+
+
+def start_here(ctx: RenderContext, *, claude: bool) -> str:
+    embedded = ctx.uat_cmd.startswith(f"./{TOOLKIT_DIR}")
+    return START_HERE.format(
+        toolkit=TOOLKIT_DIR,
+        uat=ctx.uat_cmd,
+        agent=ctx.agents[0] if ctx.agents else "claude-code",
+        claude_note=_CLAUDE_NOTE if claude else "",
+        uat_note=_EMBEDDED_NOTE if embedded else _EXTERNAL_NOTE,
+    )

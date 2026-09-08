@@ -115,3 +115,31 @@ Two depths:
 `EMBEDDED.json` marks the copy and records which depth was used. `uat doctor`
 reads it and reports missing vendor snapshots as an expected condition rather
 than a failure, so a slim embed is healthy rather than broken.
+
+## Triggering the workflow
+
+A workflow nobody starts is documentation. Installing therefore generates the
+entry point, not only the phase files:
+
+- **Claude Code** — `.claude/commands/plan.md`, `plan-status.md`,
+  `plan-resume.md`. Real slash commands, with frontmatter and `$ARGUMENTS`.
+- **Every agent** — `.agent-toolkit/START-HERE.md`, which contains the same
+  instruction as a prompt to paste, plus the phase table.
+- **The shell** — `uat workflow --project .` reads `reports/` and prints which
+  phases are done, which is next, and the prompt to continue with.
+
+Progress is derived from the presence of `reports/NN-*.md`, so it survives
+across sessions, agents and machines. There is no hidden state.
+
+### Path portability
+
+Generated files reference the CLI, and they get committed. Baking this
+checkout's absolute path into them would break every other developer, so
+`render.uat_invocation()` emits either `./.agent-toolkit/toolkit/uat` (when
+the toolkit is embedded) or a plain `uat`, never an absolute path.
+`START-HERE.md` explains which case applies. A test asserts that neither the
+user's home directory nor the toolkit checkout path appears in any generated
+file.
+
+Because of this, `--embed` runs *before* the install renders anything: the
+embedded launcher must exist for the generated commands to point at it.
