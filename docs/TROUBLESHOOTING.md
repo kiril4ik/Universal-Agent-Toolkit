@@ -57,6 +57,28 @@ open an issue. Agents with `confidence: medium` are the likely candidates.
 
 ---
 
+## `zsh: command not found: uat`
+
+There is no install step, so `uat` is not on your PATH until you put it
+there. From a checkout it is always `./bin/uat`.
+
+```bash
+ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
+```
+
+The launcher resolves symlink chains, so the link finds its own `src/` and
+`catalog/` wherever it lives.
+
+**This matters beyond convenience.** A non-embedded install writes bare `uat`
+into `.agent-toolkit/CORE.md`, and workflow phase 05 installs the stack's rule
+packs by running it. Without it on PATH those instructions fail with
+`command not found` and the agent cannot install what the plan decided it
+needs. `uat install` checks for this and says so under **Manual steps
+required**, and on a terminal offers to create the symlink for you.
+
+Embedded projects (`--embed`) are unaffected: they call
+`.agent-toolkit/toolkit/uat`, which needs no PATH entry.
+
 ## Install problems
 
 ### "Existing file kept" in the report
@@ -202,7 +224,7 @@ normally a typo in a `from` path, or an upstream that renamed a file after a
 ### Tests fail after my change
 
 ```bash
-./bin/uat-test        # 154 tests
+./bin/uat-test        # 161 tests
 ./bin/uat doctor
 ./bin/uat install --project /tmp/probe --agent claude-code --yes --dry-run
 ```

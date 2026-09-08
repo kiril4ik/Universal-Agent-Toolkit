@@ -27,6 +27,37 @@ cd ~/tools/universal-agent-toolkit
 `verified`, run `./bin/uat vendor sync` — see
 [Vendoring & provenance](VENDORING.md).
 
+## 2a. Optional: put `uat` on your PATH
+
+Every example below writes `./bin/uat`, which always works from the checkout.
+If you would rather type `uat` from anywhere, symlink the launcher into a
+directory already on your PATH:
+
+```bash
+ln -s ~/tools/universal-agent-toolkit/bin/uat      ~/.local/bin/uat
+ln -s ~/tools/universal-agent-toolkit/bin/uat-test ~/.local/bin/uat-test
+uat doctor
+```
+
+The launcher resolves the symlink chain, so it finds its own `src/` and
+`catalog/` no matter where the link lives. Adding the `bin/` directory to
+PATH works too:
+
+```bash
+echo 'export PATH="$PATH:$HOME/tools/universal-agent-toolkit/bin"' >> ~/.zshrc
+```
+
+Nothing else is needed — there is no install step, and the toolkit never
+writes to your shell configuration itself.
+
+If you skip this, `uat install` will notice: a non-embedded install writes
+bare `uat` into the project's `CORE.md`, and workflow phase 05 runs it to
+install the stack's rule packs. The installer reports that under **Manual
+steps required**, and on a terminal offers to create the symlink.
+
+> The rest of these pages write `uat` for brevity. Read it as `./bin/uat`
+> from a checkout, or `.agent-toolkit/toolkit/uat` in an embedded project.
+
 ## 3. Look before you install
 
 ```bash

@@ -125,6 +125,14 @@ You can also embed later, into an already-configured project:
 
 ## Quick start
 
+Run it from the checkout as `./bin/uat`. To type just `uat` from anywhere,
+symlink it onto your PATH — the launcher resolves symlinks, so it still finds
+its own catalog:
+
+```bash
+ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
+```
+
 ```bash
 ./bin/uat agents                    # 14 supported agents and what each one gets
 ./bin/uat catalog                   # 61 packs and 6 profiles
@@ -462,7 +470,7 @@ Python 3.9+ and git. No dependencies, no install step, no build.
 ## Tests
 
 ```bash
-./bin/uat-test     # 154 tests
+./bin/uat-test     # 161 tests
 ./bin/uat doctor   # verify catalog, registry and vendored snapshots
 ```
 
