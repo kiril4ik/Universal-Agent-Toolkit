@@ -105,7 +105,7 @@ an oversight.
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   60 packs - mostly small JSON pointers into vendor/
+catalog/packs/    328 KB   61 packs - mostly small JSON pointers into vendor/
 ```
 
 A pack does not contain content. It says *which* vendored file to install,

@@ -52,7 +52,7 @@ tests/             the test suite
 Before claiming any change here is complete:
 
 ```bash
-./bin/uat-test        # 151 tests
+./bin/uat-test        # 154 tests
 ./bin/uat doctor      # catalog + registry + vendor integrity
 ./bin/uat install --project /tmp/probe --agent claude-code --yes --dry-run
 ```

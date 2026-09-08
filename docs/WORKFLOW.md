@@ -53,12 +53,37 @@ stopping and saying so, never quietly continuing at the lower class.
 | 05 | Rules | installed rule packs | — |
 | 06 | Architecture | `docs/architecture.md` | `brainstorming` |
 | 07 | Content | `docs/content/` | `writing-guidelines` |
-| 08 | Design | `docs/design/` | `ui-ux-pro-max`, Figma MCP |
+| 08 | Design | `docs/design/` | Claude Design MCP, `ui-ux-pro-max`, Figma MCP |
 | 09 | Environments | Docker + deploy config | — |
 | 10 | Plan | `docs/superpowers/plans/…` | **`writing-plans`** |
 | 11 | **Gate** | go / no-go | — |
 | 12 | Execute | working code | **`subagent-driven-development`** |
 | 13 | **Acceptance** | `docs/acceptance.md` | Playwright MCP |
+
+### On Claude Code, phase 08 prefers Claude Design
+
+Claude Design keeps the design as a real, revisable artifact rather than prose
+describing one, and hands off to implementation without going through a
+screenshot. Phase 08 tells the agent to check for it and install the pack if
+it is missing:
+
+```bash
+uat install --project . --agent claude-code --add mcp-claude-design
+```
+
+It is **account-scoped**, so the toolkit documents it rather than writing it
+into a committed `.mcp.json` — see
+[Packs & profiles](PACKS.md#scope). The one-time setup is Anthropic's own:
+
+```bash
+claude mcp add --scope user --transport http claude-design https://api.anthropic.com/v1/design/mcp
+```
+
+then `/design-login` once and `/design-sync` to pull the project's design
+system in. It requires a paid Anthropic plan; when that is absent the phase
+says so and falls back rather than describing designs it could not produce.
+On any other agent the section is skipped — `/design-login` and `/design-sync`
+are Claude Code commands.
 
 ### Why design comes after architecture
 

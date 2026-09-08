@@ -127,7 +127,7 @@ You can also embed later, into an already-configured project:
 
 ```bash
 ./bin/uat agents                    # 14 supported agents and what each one gets
-./bin/uat catalog                   # 60 packs and 6 profiles
+./bin/uat catalog                   # 61 packs and 6 profiles
 ./bin/uat detect  --project ~/app   # what stack is in there, and the evidence
 ./bin/uat install --project ~/app --agent claude-code
 ```
@@ -361,6 +361,12 @@ palettes, font pairings), `design-system`, `web-design-guidelines`,
 `mcp-playwright` for visual verification. The `design` profile bundles
 thirteen of them.
 
+On Claude Code, the design phase prefers **Claude Design** — add
+`mcp-claude-design` and the toolkit writes the spec plus the exact one-time
+setup command. It is account-scoped rather than project-scoped, so it is
+documented rather than written into a committed `.mcp.json`; it needs a paid
+Anthropic plan, and the phase falls back cleanly when that is absent.
+
 ```bash
 uat install --project ~/app --agent claude-code --profile design
 ```
@@ -400,7 +406,7 @@ guide, a company's internal rules — with
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   60 packs - mostly small JSON pointers into vendor/
+catalog/packs/    328 KB   61 packs - mostly small JSON pointers into vendor/
 ```
 
 A pack says *which* vendored file to install, what to call it, and when it
@@ -456,7 +462,7 @@ Python 3.9+ and git. No dependencies, no install step, no build.
 ## Tests
 
 ```bash
-./bin/uat-test     # 151 tests
+./bin/uat-test     # 154 tests
 ./bin/uat doctor   # verify catalog, registry and vendored snapshots
 ```
 

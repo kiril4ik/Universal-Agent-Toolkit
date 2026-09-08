@@ -5,7 +5,7 @@ install, what to call it, and when it applies. A **profile** is a named
 bundle of packs.
 
 ```bash
-uat catalog                    # 60 packs, 6 profiles
+uat catalog                    # 61 packs, 6 profiles
 uat catalog --search wordpress # search all ~450 vendored rule documents
 uat catalog --unmapped         # vendored content no pack exposes
 ```
@@ -16,7 +16,7 @@ uat catalog --unmapped         # vendored content no pack exposes
 |---|---|---|
 | `core` | 3 | always, in every install |
 | `recommended` | 8 | when the detected stack asks for it |
-| `optional` | 49 | when you ask for it, or a profile includes it |
+| `optional` | 50 | when you ask for it, or a profile includes it |
 
 **Core** is `superpowers` (engineering-discipline skills), `security` (OWASP
 rules) and `karpathy-guidelines` (anti-overcomplication guardrails). Those
@@ -85,7 +85,7 @@ uat install --project ~/app --agent claude-code --profile nextjs
 |---|---|---|
 | rules | `.agent-toolkit/rules/GO.md` | `go`, `laravel`, `postgresql` |
 | skills | `.agent-toolkit/skills/<name>/` | `superpowers`, `ui-ux-pro-max` |
-| MCP specs | `.agent-toolkit/mcp/<server>.json` | `mcp-playwright`, `mcp-context7`, `mcp-github`, `mcp-figma` |
+| MCP specs | `.agent-toolkit/mcp/<server>.json` | `mcp-playwright`, `mcp-context7`, `mcp-github`, `mcp-figma`, `mcp-claude-design` |
 | hooks | `.agent-toolkit/hooks/` | `session-reminder` |
 | scripts and templates | `.agent-toolkit/deploy/`, `docker/` | `deploy-ubuntu`, `docker-local` |
 
@@ -122,7 +122,7 @@ not a copy:
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   60 packs - mostly small JSON pointers
+catalog/packs/    328 KB   61 packs - mostly small JSON pointers
 ```
 
 ### Our own files
@@ -175,6 +175,35 @@ Then, before claiming it works:
 `doctor` fails if a `vendor_maps` entry points at a file that is not in the
 snapshot — a typo in a `from` path is caught immediately, not at install
 time in someone else's project.
+
+## MCP specs and scope
+
+An MCP pack ships a neutral spec at `files/mcp/<server>.json`. Each agent's
+own config shape is derived from it, so one spec serves every tool.
+
+```jsonc
+{ "name": "playwright", "command": "npx", "args": ["-y", "@playwright/mcp@0.0.80"] }
+{ "name": "figma", "url": "http://127.0.0.1:3845/mcp", "transport": "http" }
+```
+
+A spec needs either `command` (stdio) or `url` (http/sse).
+
+### `scope`
+
+| Value | Meaning |
+|---|---|
+| `project` *(default)* | written into the agent's project config, e.g. `.mcp.json` |
+| `user` | **documented only** — never written into the project |
+
+`scope: "user"` is for servers that belong to an individual account rather
+than to the repository. `mcp-claude-design` is the case: it authenticates
+against your own Anthropic plan, so an entry in a committed `.mcp.json` would
+give every teammate a server that fails until they personally sign in — and
+some of them may not be entitled to it at all.
+
+The toolkit never writes outside the project, so it cannot add a user-scoped
+server for you. It writes the spec, and `.agent-toolkit/mcp/README.md` carries
+the exact command to run once per machine.
 
 ## The long tail
 
