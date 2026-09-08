@@ -71,8 +71,14 @@ done
 # ------------------------------------------------------------- 3. build
 step "Build"
 if [ -n "${BUILD_CMD:-}" ]; then
-  ( cd "$NEW" && run bash -lc "$BUILD_CMD" ) || die "build failed - nothing was switched"
-  ok "build succeeded"
+  if [ ! -d "$NEW" ]; then
+    # Dry run: the release directory was never created, so there is nothing
+    # to cd into. Report the command instead of failing on a missing path.
+    printf '   %s %s\n' "$(_c '2' 'would run in the release dir:')" "$BUILD_CMD"
+  else
+    ( cd "$NEW" && run bash -lc "$BUILD_CMD" ) || die "build failed - nothing was switched"
+    ok "build succeeded"
+  fi
 else
   warn "BUILD_CMD not set - skipping build"
 fi
@@ -85,7 +91,9 @@ if [ -n "${MIGRATE_CMD:-}" ]; then
   confirm a current backup exists and that you know the restore procedure.
   See .agent-toolkit/core/SAFETY.md.
 WARNING
-  if confirm "Run migrations now?"; then
+  if [ ! -d "$NEW" ]; then
+    printf '   %s %s\n' "$(_c '2' 'would run in the release dir:')" "$MIGRATE_CMD"
+  elif confirm "Run migrations now?"; then
     ( cd "$NEW" && run bash -lc "$MIGRATE_CMD" ) || die "migration failed - not switching"
     ok "migrations applied"
   else
@@ -104,7 +112,9 @@ ok "current -> $NEW"
 
 # ------------------------------------------------------------- 6. restart
 step "Restarting the application"
-if [ -n "${RESTART_CMD:-}" ]; then
+if [ -n "${RESTART_CMD:-}" ] && [ ! -e "$CURRENT" ]; then
+  printf '   %s %s\n' "$(_c '2' 'would run in the release dir:')" "$RESTART_CMD"
+elif [ -n "${RESTART_CMD:-}" ]; then
   ( cd "$CURRENT" && run bash -lc "$RESTART_CMD" ) || warn "restart command reported an error"
 elif service_exists "${APP_NAME}.service"; then
   run systemctl restart "${APP_NAME}"

@@ -293,3 +293,57 @@ directory in `vendor/` that `catalog/vendor.json` does not declare.
 A test also asserts no local entry records a path under `/tmp` or a home
 directory, because `vendor.json` is committed and a path from one machine is
 worse than useless on another.
+
+## Ownership is recorded, not inferred
+
+Uninstall used to decide whether a file was ours by looking for a
+`.agent-toolkit` reference in its text. That deletes a hand-written `CLAUDE.md`
+that merely *mentions* the toolkit - a file the installer had correctly
+refused to overwrite minutes earlier.
+
+`installed.json` now carries `agent_files`: every path written outside
+`.agent-toolkit/`, with the hash we wrote. Uninstall consults it and reaches
+one of three verdicts:
+
+| Verdict | Condition | Action |
+|---|---|---|
+| ours | recorded, hash unchanged | remove |
+| modified | recorded, hash differs | keep, and say why |
+| theirs | not recorded | keep |
+
+Installations predating this field fall back to the old heuristic, so an
+upgrade can still clean up after itself.
+
+## Completion is evidence, never proof
+
+`uat workflow` used to mark a phase done when a file with the right name
+existed. Twelve empty files therefore reported a finished project, including
+the approval gate.
+
+Reports are now classified by content: boilerplate, headings, empty table rows
+and `TBD` markers are stripped, and what remains must be substantive. Phase 00
+is exempt because triage deliberately writes no file - expecting one made the
+session banner say "next phase: 00" forever, inviting the agent to re-run
+triage every session.
+
+Where a phase declares an artifact (`docs/architecture.md` and friends), its
+presence is checked separately, so "report written, artifact missing" is
+visible rather than counted as success.
+
+Even a fully green run prints a caveat: the gate at phase 11 requires a human
+approval that no file can record. The tool reports evidence of work; it cannot
+certify that the work was accepted.
+
+## Previews must not have side effects
+
+The installer's dry run created the target directory (via the symlink probe)
+and understated its own change list, because it derived the rule and skill
+sets by scanning a directory the install had not populated yet.
+
+Both are fixed by deriving from the catalogue instead of from disk:
+`pack_outputs()` predicts what the selected packs produce, and the symlink
+probe tests the project directory rather than creating `.agent-toolkit/`.
+
+The deploy script had the mirror-image bug: its dry run `cd`-ed into a release
+directory it had deliberately not created. Commands are now printed instead of
+executed when the release path is absent.

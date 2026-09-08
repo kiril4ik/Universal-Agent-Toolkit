@@ -98,8 +98,8 @@
           "path": "AGENTS.md"
         },
         "skills": {
-          "path": null,
-          "mode": null
+          "path": ".agents/skills",
+          "mode": "link"
         },
         "mcp": {
           "scope": "global",
@@ -108,7 +108,7 @@
           "shape": "toml"
         }
       },
-      "notes": "MCP is configured globally in TOML, not per project. Installer emits manual setup instructions instead of writing it."
+      "notes": "Verified: Codex reads repository skills from .agents/skills/<name>/SKILL.md and discovers them implicitly (or via /skills and $mentions). MCP is configured globally in ~/.codex/config.toml as TOML, not per project, so the installer emits manual instructions for it instead."
     },
     {
       "id": "copilot",

@@ -120,7 +120,11 @@ has_pkg() {
 
 # ---------------------------------------------------------------- health
 
-# wait_http <url> <attempts> - poll until 2xx/3xx
+# wait_http <url> [attempts] - poll until 2xx/3xx.
+#
+# RETURNS 1 on failure; it must never exit the script. The caller is the only
+# thing that knows whether a failure means "roll back" or "give up", and an
+# exit here would skip the rollback branch entirely.
 wait_http() {
   local url="$1" attempts="${2:-30}" i
   require_cmd curl
@@ -131,7 +135,8 @@ wait_http() {
     fi
     sleep 2
   done
-  die "health check never passed after $((attempts * 2))s: $url"
+  warn "health check never passed after $((attempts * 2))s: $url"
+  return 1
 }
 
 # ---------------------------------------------------------------- env

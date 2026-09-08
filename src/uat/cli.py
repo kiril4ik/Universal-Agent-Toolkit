@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -247,11 +248,34 @@ def cmd_install(args) -> int:
 
     interactive = sys.stdin.isatty() and not args.yes and not args.dry_run
 
+    # An install into a configured project EXTENDS it. Anything else means
+    # `--add go` silently drops the packs, agents and mode already recorded -
+    # which is exactly the documented mid-project flow in workflow phase 05.
+    previous = inst.load_state(project)
+    prev_doc = inst.read_json(
+        project / inst.TOOLKIT_DIR / inst.PROJECT_FILE, default={})
+    merging = bool(previous) and not args.replace
+
     mode = args.mode
+    if mode is None and merging and prev_doc.get("mode") in inst.MODES:
+        mode = prev_doc["mode"]
     if mode is None:
         mode = _choose_mode() if interactive else "focused"
 
     detection, recommended = _resolve_selection(args, registry, catalog, project)
+
+    if merging:
+        explicit = bool(args.packs or args.profile or args.all)
+        known = set(catalog.ids)
+        prev_packs = {p for p in previous.get("packs", []) if p in known}
+        if not explicit:
+            recommended = prev_packs | recommended
+        else:
+            recommended |= prev_packs
+        prev_agents = [a for a in previous.get("agents", []) if a in registry.ids]
+        for aid in prev_agents:
+            if aid not in args.agent:
+                args.agent.append(aid)
 
     if interactive and not args.packs and not args.all and not args.profile:
         recommended = _interactive_packs(catalog, recommended, detection)
@@ -274,6 +298,9 @@ def cmd_install(args) -> int:
     print(f"  agents    {', '.join(a.name for a in plan.agents)}")
     print(f"  mode      {plan.mode}")
     print(f"  packs     {len(plan.packs)}  " + dim(", ".join(plan.pack_ids)))
+    if merging:
+        print(dim(f"            (extending the existing install; "
+                  f"--replace to start over)"))
     print(f"  skills    {plan.skills_mode}")
     print()
     print(f"  {bold('creates one folder:')} .agent-toolkit/")
@@ -374,21 +401,49 @@ def cmd_embed(args) -> int:
     return 0
 
 
+# num, name, artifact it must produce (relative to project root), expects a report
 PHASES = [
-    ("00", "triage", "class + phase list"),
-    ("01", "discovery", "reports/01-discovery.md"),
-    ("02", "business logic", "docs/business-logic.md"),
-    ("03", "screens & flows", "docs/screens.md"),
-    ("04", "stack", "docs/stack.md"),
-    ("05", "rules", "installed rule packs"),
-    ("06", "architecture", "docs/architecture.md"),
-    ("07", "content", "docs/content/"),
-    ("08", "design", "docs/design/"),
-    ("09", "environments", "Docker + deploy"),
-    ("10", "plan", "docs/superpowers/plans/"),
-    ("11", "GATE", "go / no-go"),
-    ("12", "execute", "working code"),
+    ("00", "triage", "", False),          # triage announces a class; it writes no file
+    ("01", "discovery", "", True),
+    ("02", "business logic", "docs/business-logic.md", True),
+    ("03", "screens & flows", "docs/screens.md", True),
+    ("04", "stack", "docs/stack.md", True),
+    ("05", "rules", "", True),
+    ("06", "architecture", "docs/architecture.md", True),
+    ("07", "content", "docs/content", True),
+    ("08", "design", "docs/design", True),
+    ("09", "environments", "", True),
+    ("10", "plan", "docs/superpowers/plans", True),
+    ("11", "GATE", "", True),
+    ("12", "execute", "", True),
 ]
+
+# Template scaffolding that carries no information on its own.
+_BOILERPLATE = re.compile(
+    r"^\s*(#.*|[-*]\s*$|\|.*\||_.*_|<!--.*-->)?\s*$|"
+    r"^\s*(TBD|TODO|\?\?\?|N/A|\[.*\])\s*$",
+    re.IGNORECASE,
+)
+
+
+def report_substance(path: Path) -> tuple[str, int]:
+    """Classify a phase report as 'done' or 'stub'.
+
+    An empty file used to count as a completed phase, which is how a project
+    reaches "all phases done" without anything having happened. Completion is
+    judged on content, and even then only as evidence - never as proof.
+    """
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return "stub", 0
+    meat = sum(
+        len(line.strip())
+        for line in text.splitlines()
+        if line.strip() and not _BOILERPLATE.match(line)
+    )
+    return ("done" if meat >= 80 else "stub"), meat
+
 
 
 def cmd_add_rule(args) -> int:
@@ -432,12 +487,11 @@ def cmd_workflow(args) -> int:
         raise ToolkitError(f"no toolkit installed in {project}")
 
     reports = toolkit / "reports"
-    done = {}
+    found: dict[str, Path] = {}
     if reports.is_dir():
         for f in reports.glob("*.md"):
-            if f.name == "README.md":
-                continue
-            done[f.name[:2]] = f
+            if f.name != "README.md" and f.name[:2].isdigit():
+                found[f.name[:2]] = f
 
     doc = inst.read_json(toolkit / inst.PROJECT_FILE, default={})
     print(bold(f"Planning workflow: {project.name}"))
@@ -446,26 +500,58 @@ def cmd_workflow(args) -> int:
     print()
 
     next_phase = None
-    for num, name, produces in PHASES:
-        if num in done:
-            mark = green("done")
-        elif next_phase is None and num != "00":
-            mark = yellow("next")
-            next_phase = (num, name)
+    stubs, missing_artifacts = [], []
+
+    for num, name, artifact, expects in PHASES:
+        report = found.get(num)
+        state = "-"
+        if not expects:
+            state = "n/a"
+        elif report is None:
+            state = "todo"
         else:
-            mark = dim("  - ")
-        label = bold(name) if num == "11" else name
-        print(f"  {mark}  {num}  {label:<22} {dim(produces)}")
+            verdict, _ = report_substance(report)
+            state = verdict
+            if verdict == "stub":
+                stubs.append(num)
+
+        art_note = ""
+        if artifact and state == "done":
+            if not (project / artifact).exists():
+                art_note = red(f"  missing {artifact}")
+                missing_artifacts.append((num, artifact))
+        elif artifact:
+            art_note = dim(f"  -> {artifact}")
+
+        if state in ("todo", "stub") and next_phase is None:
+            mark, next_phase = yellow("next"), (num, name)
+        elif state == "done":
+            mark = green("done")
+        elif state == "n/a":
+            mark = dim(" -- ")
+        else:
+            mark = dim("    ")
+
+        label = bold(name) if num in ("11", "12") else name
+        print(f"  {mark}  {num}  {label:<22}{art_note}")
 
     print()
-    if not done:
+    if stubs:
+        print(yellow(f"  {len(stubs)} report(s) are stubs, not results: "
+                     + ", ".join(stubs)))
+    if missing_artifacts:
+        print(red("  reports claim completion but the artifact is absent:"))
+        for num, art in missing_artifacts:
+            print(f"    {num} -> {art}")
+    if not found:
         print("  nothing started yet.")
     elif next_phase is None:
-        print(green("  all phases have reports."))
+        print(green("  every phase has a substantive report."))
+        print(dim("  This is evidence, not proof. The gate (11) requires a human"))
+        print(dim("  approval that no file can record - confirm it was given."))
 
     uat = f"./{inst.TOOLKIT_DIR}/toolkit/uat" \
         if (toolkit / "toolkit" / "uat").is_file() else "uat"
-    start_here = toolkit / "START-HERE.md"
 
     print()
     print(bold("  To continue, give your agent:"))
@@ -476,7 +562,7 @@ def cmd_workflow(args) -> int:
     if (project / ".claude" / "commands" / "plan.md").is_file():
         print()
         print(dim("  Claude Code:  /plan <what to build>   /plan-status   /plan-resume"))
-    if start_here.is_file():
+    if (toolkit / "START-HERE.md").is_file():
         print()
         print(dim(f"  Full guide:   {inst.TOOLKIT_DIR}/START-HERE.md"))
     print(dim(f"  Progress:     {uat} workflow --project ."))
@@ -704,6 +790,9 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--force", action="store_true", help="replace conflicting files")
     i.add_argument("--dry-run", action="store_true", help="show what would change")
     i.add_argument("--copy", action="store_true", help="copy skills instead of symlinking")
+    i.add_argument("--replace", action="store_true",
+                   help="replace the recorded configuration instead of extending it "
+                        "(drops packs and agents not named in this command)")
     i.add_argument("--embed", action="store_true",
                    help="also copy the toolkit into .agent-toolkit/toolkit/ so the "
                         "project can manage itself without this checkout")

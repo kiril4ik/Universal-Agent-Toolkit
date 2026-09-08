@@ -86,6 +86,8 @@ Add `--dry-run` to see every file that would change before anything does.
 ```bash
 ./bin/uat install --project ~/app --agent cursor --profile nextjs
 ./bin/uat install --project ~/app --agent claude-code --agent cursor
+./bin/uat install --project ~/app --agent claude-code --add go   # extends; keeps the rest
+./bin/uat install --project ~/app --agent cursor --profile core --replace   # starts over
 ./bin/uat workflow  --project ~/app     # planning progress and next step
 ./bin/uat status    --project ~/app     # what is installed, and local drift
 ./bin/uat uninstall --project ~/app     # removes only what it created
@@ -196,8 +198,13 @@ Every tool-specific path and config key lives in
 edit there, never a code change. Each agent carries a `confidence` rating for
 how well its format is verified — check it with `uat agents --show cursor`.
 
-Only Claude Code has native skills, so only Claude Code gets a skills mount.
-Every other agent gets the same content as plain Markdown it can read.
+Claude Code (`.claude/skills/`) and Codex (`.agents/skills/`) have native skill
+discovery, so both get a skills mount. Every other agent gets the same content
+as plain Markdown it can read.
+
+An install into a configured project **extends** it: previous packs, agents and
+interaction mode are kept, so `--add go` mid-project does not quietly discard
+your Cursor config. Use `--replace` to start over deliberately.
 
 ## The planning workflow
 

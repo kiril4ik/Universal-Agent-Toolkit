@@ -21,17 +21,29 @@ if [ -r "$tk/project.json" ]; then
 fi
 
 # Which phases have reports, so the reminder reflects real progress.
+# Phase 00 (triage) deliberately writes no report - it announces a class in
+# chat. Expecting one made the banner say "next phase: 00" forever, which
+# invites the agent to re-run triage every session.
+#
+# A report also has to say something. An empty file is a stub, not a finished
+# phase; counting it as done is a route to premature completion.
+# Phase 00 (triage) deliberately writes no report - it announces a class in
+# chat. Expecting one made the banner say "next phase: 00" forever, which
+# invites the agent to re-run triage every session.
+#
+# A report also has to say something: an empty file is a stub, not a finished
+# phase, and counting it as done is a route to premature completion.
 done_count=0
-next_phase="00 triage"
-if [ -d "$tk/reports" ]; then
-  done_count="$(find "$tk/reports" -name '[0-9][0-9]-*.md' 2>/dev/null | wc -l | tr -d ' ')"
-  for n in 00 01 02 03 04 05 06 07 08 09 10 11 12; do
-    if ! ls "$tk/reports/$n-"*.md >/dev/null 2>&1; then
-      next_phase="$n"
-      break
-    fi
-  done
-fi
+next_phase=""
+for n in 01 02 03 04 05 06 07 08 09 10 11 12; do
+  f="$(ls "$tk/reports/$n-"*.md 2>/dev/null | head -1)"
+  if [ -n "$f" ] && [ "$(wc -c <"$f" 2>/dev/null || echo 0)" -ge 150 ]; then
+    done_count=$((done_count + 1))
+  elif [ -z "$next_phase" ]; then
+    next_phase="$n"
+  fi
+done
+[ -n "$next_phase" ] || next_phase="none - every phase has a report (gate 11 still needs YOUR approval)"
 
 cat <<BANNER
 <agent-toolkit>

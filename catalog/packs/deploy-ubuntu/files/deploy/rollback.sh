@@ -70,5 +70,12 @@ elif service_exists "${APP_NAME}.service"; then
 fi
 
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:${APP_PORT}${HEALTH_PATH:-/}}"
-[ "$DRY_RUN" = "1" ] || wait_http "$HEALTH_URL" "${HEALTH_ATTEMPTS:-30}"
-step "Rolled back to $TARGET"
+if [ "$DRY_RUN" = "1" ]; then
+  step "Rolled back to $TARGET (dry run)"
+elif wait_http "$HEALTH_URL" "${HEALTH_ATTEMPTS:-30}"; then
+  step "Rolled back to $TARGET"
+else
+  die "rolled back to $TARGET but it is NOT healthy. Both releases are failing -
+       this is not a release problem. Check the database, the environment file
+       and any shared service before deploying again."
+fi

@@ -76,9 +76,11 @@ class TestRegistry(unittest.TestCase):
         agents = self.registry.resolve(["claude-code", "claude", "cursor"])
         self.assertEqual([a.id for a in agents], ["claude-code", "cursor"])
 
-    def test_only_claude_code_has_skills(self):
-        with_skills = [a.id for a in self.registry if a.supports_skills]
-        self.assertEqual(with_skills, ["claude-code"])
+    def test_agents_with_native_skill_support(self):
+        """Codex reads repository skills from .agents/skills - verified in docs."""
+        with_skills = sorted(a.id for a in self.registry if a.supports_skills)
+        self.assertEqual(with_skills, ["claude-code", "codex"])
+        self.assertEqual(self.registry.get("codex").skills_path, ".agents/skills")
 
     def test_owned_paths_are_relative(self):
         for agent in self.registry:
@@ -624,6 +626,188 @@ class TestAiderLoaderConfig(TempProject):
         self.install(["aider"])
         inst.uninstall(self.project, self.registry, report=Report())
         self.assertFalse((self.project / ".aider.conf.yml").exists())
+
+
+class TestReportedRegressions(TempProject):
+    """One test per bug from the reproduction report. Each one failed before."""
+
+    # --- 2: uninstall deleted instructions it never wrote -----------------
+    def test_uninstall_keeps_a_users_own_instruction_file(self):
+        self.write("CLAUDE.md",
+                   "# Team rules\nSee .agent-toolkit/CORE.md for the toolkit.\n")
+        self.install(["claude-code"])
+        inst.uninstall(self.project, self.registry, report=Report())
+        self.assertTrue((self.project / "CLAUDE.md").is_file())
+        self.assertIn("Team rules", (self.project / "CLAUDE.md").read_text())
+
+    def test_uninstall_keeps_a_generated_file_the_user_edited(self):
+        self.install(["claude-code"])
+        target = self.project / "CLAUDE.md"
+        target.write_text(target.read_text() + "\n## my addition\n")
+        inst.uninstall(self.project, self.registry, report=Report())
+        self.assertTrue(target.is_file())
+        self.assertIn("my addition", target.read_text())
+
+    def test_uninstall_still_removes_untouched_generated_files(self):
+        self.install(["claude-code"])
+        inst.uninstall(self.project, self.registry, report=Report())
+        self.assertFalse((self.project / "CLAUDE.md").exists())
+
+    # --- 3: a second install forgot the first -----------------------------
+    def test_add_pack_keeps_previous_packs_agents_and_mode(self):
+        first = self.install(["claude-code", "cursor"],
+                             packs=["superpowers", "security"], mode="autonomous")
+        before = set(first.plan.pack_ids)
+
+        state = inst.load_state(self.project)
+        doc = inst.read_json(self.project / ".agent-toolkit/project.json", default={})
+        merged = sorted(set(state["packs"]) | {"go"})
+        agents = list(dict.fromkeys(["claude-code"] + state["agents"]))
+        plan = inst.build_plan(
+            ROOT, self.project, registry=self.registry, catalog=self.catalog,
+            agent_keys=agents, mode=doc["mode"], explicit_packs=merged)
+        inst.execute(plan, ROOT)
+
+        after = inst.load_state(self.project)
+        self.assertTrue(before.issubset(set(after["packs"])), "packs were dropped")
+        self.assertIn("go", after["packs"])
+        self.assertEqual(after["agents"], ["claude-code", "cursor"])
+        self.assertEqual(
+            inst.read_json(self.project / ".agent-toolkit/project.json")["mode"],
+            "autonomous")
+
+    # --- 4: empty reports counted as completed phases ---------------------
+    def test_empty_report_is_a_stub_not_a_completed_phase(self):
+        from uat.cli import report_substance
+        self.install(["claude-code"])
+        r = self.project / ".agent-toolkit/reports/01-discovery.md"
+        r.write_text("")
+        self.assertEqual(report_substance(r)[0], "stub")
+        r.write_text("# Phase 01\n\n## What was checked\n\n## Decisions\n")
+        self.assertEqual(report_substance(r)[0], "stub",
+                         "an unfilled template is not a completed phase")
+        r.write_text("# Phase 01 - discovery\n\nEmpty repository: no manifests, "
+                     "no CI, no tests. Treating this as a new project and asking "
+                     "about hosting before proposing a stack.\n")
+        self.assertEqual(report_substance(r)[0], "done")
+
+    def test_triage_expects_no_report(self):
+        from uat.cli import PHASES
+        by = {num: expects for num, _n, _a, expects in PHASES}
+        self.assertFalse(by["00"], "triage writes no file; expecting one loops forever")
+        self.assertTrue(by["01"])
+
+    def test_session_hook_does_not_ask_for_a_triage_report(self):
+        import subprocess
+        self.install(["claude-code"], packs=["superpowers", "session-reminder"])
+        out = subprocess.run(
+            ["bash", str(self.project / ".agent-toolkit/hooks/session-start.sh")],
+            capture_output=True, text=True,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(self.project)})
+        self.assertIn("next phase: 01", out.stdout)
+
+    # --- 6: dry runs were unreliable --------------------------------------
+    def test_dry_run_creates_nothing(self):
+        target = self.tmp / "untouched"
+        target.mkdir()
+        plan = inst.build_plan(
+            ROOT, target, registry=self.registry, catalog=self.catalog,
+            agent_keys=["claude-code"], mode="focused",
+            explicit_packs=["superpowers"])
+        inst.execute(plan, ROOT, dry_run=True)
+        self.assertEqual(list(target.iterdir()), [],
+                         "dry run wrote something into the project")
+
+    def test_dry_run_reports_commands_and_skill_mount(self):
+        plan = inst.build_plan(
+            ROOT, self.project, registry=self.registry, catalog=self.catalog,
+            agent_keys=["claude-code"], mode="focused",
+            explicit_packs=["superpowers"])
+        result = inst.execute(plan, ROOT, dry_run=True)
+        paths = " ".join(a.path for a in result.report.actions)
+        self.assertIn("commands/plan.md", paths, "dry run omitted slash commands")
+        self.assertIn(".claude/skills", paths, "dry run omitted the skill mount")
+
+    # --- 5: Codex skills --------------------------------------------------
+    def test_codex_gets_a_skill_mount(self):
+        self.install(["codex"])
+        mount = self.project / ".agents/skills"
+        self.assertTrue(mount.is_symlink() or mount.is_dir())
+        self.assertTrue((mount / "brainstorming/SKILL.md").exists())
+
+
+class TestDeployRollback(unittest.TestCase):
+    """Regression 1: a failed health check must actually roll back.
+
+    wait_http used to call die(), which exits the script - so deploy.sh never
+    reached its rollback branch and left `current` pointing at the broken
+    release, contradicting the advertised behaviour.
+    """
+
+    DEPLOY = ROOT / "catalog/packs/deploy-ubuntu/files/deploy"
+
+    def setUp(self):
+        import shutil
+        self.tmp = Path(tempfile.mkdtemp(prefix="uat-deploy-"))
+        self.app = self.tmp / "app"
+        (self.app / "releases" / "GOOD-OLD").mkdir(parents=True)
+        (self.app / "shared").mkdir()
+        (self.app / "shared" / ".env").write_text("")
+        (self.app / "releases" / "GOOD-OLD" / "marker").write_text("old")
+        (self.app / "current").symlink_to(self.app / "releases" / "GOOD-OLD")
+        self.src = self.tmp / "src"
+        self.src.mkdir()
+        (self.src / "marker").write_text("new")
+        self.deploy = self.tmp / "deploy"
+        shutil.copytree(self.DEPLOY, self.deploy)
+        (self.deploy / "deploy.env").write_text(
+            f"APP_NAME=probe\nAPP_USER=nobody\nAPP_DIR={self.app}\n"
+            f"APP_DOMAIN=localhost\nAPP_PORT=59997\nAPP_REPO=\n"
+            f"APP_SOURCE={self.src}\nBUILD_CMD=\nMIGRATE_CMD=\nRESTART_CMD=\n"
+            f"HEALTH_PATH=/\nHEALTH_ATTEMPTS=1\n"
+        )
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _run(self, script, *args):
+        import subprocess
+        return subprocess.run(
+            ["bash", str(self.deploy / script), "--env", str(self.deploy / "deploy.env"),
+             *args],
+            capture_output=True, text=True, cwd=self.deploy, timeout=120,
+        )
+
+    def test_failed_health_check_rolls_back(self):
+        out = self._run("deploy.sh")
+        self.assertNotEqual(out.returncode, 0, "a failed deploy must exit non-zero")
+        live = os.path.basename(os.path.realpath(self.app / "current"))
+        self.assertEqual(live, "GOOD-OLD",
+                         f"current points at {live}; rollback did not happen")
+        self.assertIn("rolling back", out.stdout + out.stderr)
+
+    def test_failed_release_is_kept_for_inspection(self):
+        self._run("deploy.sh")
+        releases = sorted(p.name for p in (self.app / "releases").iterdir())
+        self.assertGreater(len(releases), 1, "the failed release was discarded")
+
+    def test_dry_run_survives_a_configured_build_command(self):
+        """Regression 6: dry run cd'd into a release directory it never made."""
+        env = (self.deploy / "deploy.env").read_text().replace(
+            "BUILD_CMD=", 'BUILD_CMD="echo building"')
+        (self.deploy / "deploy.env").write_text(env)
+        import subprocess
+        out = subprocess.run(
+            ["bash", str(self.deploy / "deploy.sh"),
+             "--env", str(self.deploy / "deploy.env"), "--dry-run"],
+            capture_output=True, text=True, cwd=self.deploy, timeout=120,
+            env={**os.environ, "DRY_RUN": "1"},
+        )
+        self.assertEqual(out.returncode, 0,
+                         f"dry run failed:\n{out.stdout}\n{out.stderr}")
+        live = os.path.basename(os.path.realpath(self.app / "current"))
+        self.assertEqual(live, "GOOD-OLD", "dry run changed the live release")
 
 
 class TestLocalVendoring(unittest.TestCase):

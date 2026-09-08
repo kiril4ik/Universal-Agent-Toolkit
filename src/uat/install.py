@@ -24,6 +24,7 @@ from .mcpconf import ServerSpec, manual_setup_notes, write_agent_mcp
 from .registry import Agent, Registry
 from .util import (
     ADD,
+    LINK,
     OVERWRITE,
     SAME,
     CONFLICT,
@@ -131,7 +132,13 @@ def build_plan(
         catalog.get(pid)  # validates
 
     if skills_mode is None:
-        skills_mode = "link" if supports_symlinks(project / TOOLKIT_DIR) else "copy"
+        # Probe the project directory, never .agent-toolkit/: the probe creates
+        # the directory it tests, and a dry run must not create anything. If the
+        # project itself does not exist yet, assume links and let a real install
+        # fall back to copying when the filesystem refuses.
+        skills_mode = (
+            "link" if not project.exists() or supports_symlinks(project) else "copy"
+        )
 
     return InstallPlan(
         project=project,
@@ -307,6 +314,46 @@ def write_agent_hooks(
     return True
 
 
+def pack_outputs(packs: list[Pack], toolkit_root: Path) -> tuple[list[str], list[str]]:
+    """Rule filenames and skill names the selected packs will produce.
+
+    Derived from the catalogue, not from disk, so `--dry-run` can report the
+    adapters and skill mounts an install would create. Scanning the target
+    directory only works after the fact, which made dry runs understate the
+    change - the opposite of what a preview is for.
+    """
+    rules: set[str] = set()
+    skills: set[str] = set()
+
+    def note(dest_rel: str) -> None:
+        parts = dest_rel.split("/")
+        if parts[0] == "rules" and dest_rel.endswith(".md"):
+            rules.add(parts[-1])
+        elif parts[0] == "skills" and len(parts) > 1:
+            skills.add(parts[1])
+
+    for pack in packs:
+        fd = pack.files_dir
+        if fd.exists():
+            for f in iter_files(fd):
+                note(str(f.relative_to(fd)).replace(os.sep, "/"))
+        for vm in pack.vendor_maps:
+            for _, to in vm.files:
+                note(to)
+            if not vm.dest:
+                continue
+            src = toolkit_root / "vendor" / vm.vendor / vm.src if vm.src else None
+            if vm.dest == "skills" and src and src.is_dir():
+                for d in sorted(src.iterdir()):
+                    if d.is_dir() and (d / "SKILL.md").is_file():
+                        skills.add(d.name)
+            else:
+                note(vm.dest + ("/x" if vm.dest.count("/") == 0 else ""))
+                if vm.dest.startswith("skills/"):
+                    skills.add(vm.dest.split("/")[1])
+    return sorted(rules), sorted(skills)
+
+
 def _collect_mcp_specs(dest_root: Path) -> list[ServerSpec]:
     mcp_dir = dest_root / "mcp"
     if not mcp_dir.exists():
@@ -368,12 +415,17 @@ def execute(
     if hook_script.is_file() and not dry_run:
         hook_script.chmod(0o755)
 
-    rules = _installed_rules(dest)
-    skills = _installed_skills(dest)
+    # Union of what is already there and what these packs produce, so the
+    # numbers are right during a dry run as well as after a real install.
+    pred_rules, pred_skills = pack_outputs(plan.packs, toolkit_root)
+    rules = sorted(set(_installed_rules(dest)) | set(pred_rules))
+    skills = sorted(set(_installed_skills(dest)) | set(pred_skills))
     specs = _collect_mcp_specs(dest)
     result.mcp_specs = specs
 
-    has_workflow = (dest / "workflow" / "README.md").exists() or not dry_run
+    # The workflow ships with the toolkit, so its presence is a property of the
+    # source, not of the half-built target directory.
+    has_workflow = (toolkit_root / "catalog" / "workflow" / "README.md").is_file()
     has_deploy = (dest / "deploy").exists() or (dest / "docker").exists()
 
     # 4. agent adapters - ONLY for the selected agents
@@ -442,7 +494,10 @@ def execute(
         # session-start hook - makes the rules unmissable rather than findable
         if write_agent_hooks(
             agent, project,
-            enabled=(dest / "hooks" / "session-start.sh").is_file(),
+            enabled=(
+                (dest / "hooks" / "session-start.sh").is_file()
+                or any(p.id == "session-reminder" for p in plan.packs)
+            ),
             force=force, report=report,
         ):
             result.notes.append(
@@ -565,8 +620,33 @@ def _write_state(
                     files[rel] = sha256_file(p)
             # CONFLICT: deliberately keep the previous hash so drift is visible.
 
+    # Files we created outside .agent-toolkit/, with the hash we wrote. Uninstall
+    # uses this instead of guessing ownership from file content - a hand-written
+    # CLAUDE.md that merely mentions the toolkit is NOT ours to delete.
+    agent_files: dict[str, str] = dict(
+        read_json(dest / STATE_FILE, default={}).get("agent_files", {})
+    )
+    project = dest.parent
+    if not report.dry_run:
+        for action in report.actions:
+            ap = Path(action.path)
+            try:
+                rel = str(ap.relative_to(project)).replace(os.sep, "/")
+            except ValueError:
+                continue
+            if rel.startswith(TOOLKIT_DIR + "/") or rel == TOOLKIT_DIR:
+                continue
+            if action.kind in (ADD, OVERWRITE, LINK):
+                agent_files[rel] = (
+                    "symlink" if ap.is_symlink()
+                    else sha256_file(ap) if ap.is_file() else "dir"
+                )
+            elif action.kind == SAME and rel in agent_files and ap.is_file():
+                agent_files[rel] = sha256_file(ap)
+
     state = {
         "toolkit_version": _toolkit_version(toolkit_root),
+        "agent_files": agent_files,
         "installed_at": now,
         "skills_mode": plan.skills_mode,
         "packs": plan.pack_ids,
@@ -624,6 +704,10 @@ def uninstall(
     # Server names we added, read before the toolkit directory goes away.
     our_servers = {s.name for s in _collect_mcp_specs(dest)}
 
+    # Recorded provenance: what we actually created, and the hash we wrote.
+    owned: dict[str, str] = state.get("agent_files", {})
+    legacy = not owned          # installed before provenance was recorded
+
     touched_dirs: set[Path] = set()
 
     for agent_id in state.get("agents", []):
@@ -651,31 +735,39 @@ def uninstall(
                 continue
 
             if target.is_symlink():
-                if not report.dry_run:
-                    target.unlink()
-                report.record("skip", target, "removed symlink")
+                if not legacy and rel not in owned:
+                    report.record(CONFLICT, target, "not created by uat; kept")
+                else:
+                    if not report.dry_run:
+                        target.unlink()
+                    report.record("skip", target, "removed symlink")
             elif target.is_file():
-                text = target.read_text(encoding="utf-8", errors="replace")
-                if TOOLKIT_DIR in text:
+                verdict = _ownership(target, rel, owned, legacy)
+                if verdict == "ours":
                     if not report.dry_run:
                         target.unlink()
                     report.record("skip", target, "removed generated file")
+                elif verdict == "modified":
+                    report.record(
+                        CONFLICT, target,
+                        "we created it but you edited it; kept - delete it yourself",
+                    )
                 else:
-                    report.record(CONFLICT, target, "not generated by uat; kept")
+                    report.record(CONFLICT, target, "not created by uat; kept")
             elif target.is_dir():
                 # A directory surface (.claude/commands, .cursor/rules ...):
                 # remove the files we generated, leave anything else alone.
                 for f in sorted(p for p in target.rglob("*") if p.is_file()):
-                    try:
-                        text = f.read_text(encoding="utf-8", errors="replace")
-                    except OSError:
-                        continue
-                    if TOOLKIT_DIR in text:
+                    f_rel = str(f.relative_to(project)).replace(os.sep, "/")
+                    verdict = _ownership(f, f_rel, owned, legacy)
+                    if verdict == "ours":
                         if not report.dry_run:
                             f.unlink()
                         report.record("skip", f, "removed generated file")
+                    elif verdict == "modified":
+                        report.record(CONFLICT, f, "we created it but you edited it; kept")
                     else:
-                        report.record(CONFLICT, f, "not generated by uat; kept")
+                        report.record(CONFLICT, f, "not created by uat; kept")
                     touched_dirs.add(f.parent)
                 touched_dirs.add(target)
 
@@ -698,6 +790,32 @@ def uninstall(
             except OSError:
                 break
             d = d.parent
+
+
+def _ownership(path: Path, rel: str, owned: dict[str, str], legacy: bool) -> str:
+    """Did we create this file, and is it still as we wrote it?
+
+    Returns "ours", "modified" or "theirs". Ownership comes from the recorded
+    install, never from guessing at file content: a hand-written CLAUDE.md that
+    happens to reference the toolkit is the user's file, not ours.
+    """
+    if rel in owned:
+        recorded = owned[rel]
+        if recorded in ("dir", "symlink"):
+            return "ours"
+        try:
+            return "ours" if sha256_file(path) == recorded else "modified"
+        except OSError:
+            return "ours"
+    if legacy:
+        # Installed before provenance was recorded. Fall back to the old
+        # content heuristic so upgrades can still clean up after themselves.
+        try:
+            return "ours" if TOOLKIT_DIR in path.read_text(
+                encoding="utf-8", errors="replace") else "theirs"
+        except OSError:
+            return "theirs"
+    return "theirs"
 
 
 def _strip_our_hook(path: Path, cfg: dict, *, report: Report) -> None:
