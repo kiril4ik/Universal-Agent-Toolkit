@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -242,6 +243,70 @@ def _resolve_selection(args, registry, catalog, project):
     return detection, recommended
 
 
+def _path_symlink_target() -> Path | None:
+    """A directory already on PATH, inside $HOME, that we can write to.
+
+    Only somewhere already on PATH: creating a directory the shell does not
+    search would report success and change nothing. If there is no such
+    place, the caller prints the command instead of guessing at a shell
+    config file it does not own.
+    """
+    home = Path.home()
+    for entry in os.environ.get("PATH", "").split(os.pathsep):
+        if not entry:
+            continue
+        d = Path(entry)
+        try:
+            if d.is_dir() and home in d.parents and os.access(d, os.W_OK):
+                return d
+        except OSError:
+            continue
+    return None
+
+
+def _offer_path_symlink(toolkit_root: Path) -> None:
+    """Ask before putting `uat` on PATH. Never runs non-interactively.
+
+    The generated CORE.md tells the agent to run bare `uat`, so on a
+    non-embedded install this is a prerequisite, not a convenience.
+    """
+    launcher = toolkit_root / "bin" / "uat"
+    if not launcher.is_file():
+        return
+
+    target = _path_symlink_target()
+    print()
+    print(bold("`uat` is not on your PATH."))
+    print(dim("  The generated .agent-toolkit/CORE.md tells your agent to run it -"))
+    print(dim("  phase 05 installs the stack's rule packs that way."))
+    if target is None:
+        print(f"  Add it yourself:  ln -s {launcher} <a directory on your PATH>")
+        return
+
+    link = target / "uat"
+    print()
+    try:
+        answer = input(f"Symlink it into {target}? [Y/n] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return
+    if answer in ("n", "no"):
+        print(dim(f"  skipped - ln -s {launcher} {link}"))
+        return
+
+    if link.exists() or link.is_symlink():
+        print(red(f"  {link} already exists - left alone"))
+        print(dim(f"  replace it yourself with: ln -sfn {launcher} {link}"))
+        return
+    try:
+        link.symlink_to(launcher)
+    except OSError as exc:
+        print(red(f"  could not create {link}: {exc}"))
+        return
+    print(green(f"  {link} -> {launcher}"))
+    print(dim("  remove it with: rm " + str(link)))
+
+
 def cmd_install(args) -> int:
     registry, catalog = _load(TOOLKIT_ROOT)
     project = _project(args)
@@ -356,6 +421,9 @@ def cmd_install(args) -> int:
         print(bold("Manual steps required:"))
         for n in dict.fromkeys(result.notes):
             print(f"  - {n}")
+
+    if interactive and not args.embed and not inst.uat_on_path():
+        _offer_path_symlink(TOOLKIT_ROOT)
 
     print()
     print(green(bold("Installed.")) + " Next:")

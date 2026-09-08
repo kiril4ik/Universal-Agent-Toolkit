@@ -1427,6 +1427,48 @@ class TestEmbedding(TempProject):
         self.assertFalse(embedlib.is_embedded(ROOT))
 
 
+class TestPathPrerequisite(TempProject):
+    """A non-embedded install writes bare `uat` into CORE.md.
+
+    Phase 05 installs the stack's rule packs by running it, so PATH is a
+    prerequisite the install creates - not a convenience. It must say so.
+    """
+
+    def _notes(self, env_path, **kw):
+        real = os.environ.get("PATH", "")
+        os.environ["PATH"] = env_path
+        try:
+            return self.install(["claude-code"], packs=["superpowers"], **kw)
+        finally:
+            os.environ["PATH"] = real
+
+    def test_core_md_references_bare_uat_when_not_embedded(self):
+        self.install(["claude-code"], packs=["superpowers"])
+        core = (self.project / ".agent-toolkit/CORE.md").read_text()
+        self.assertRegex(core, r"(?m)^uat ")
+
+    def test_warns_when_uat_is_not_on_path(self):
+        result = self._notes("/usr/bin:/bin")
+        self.assertTrue(
+            any("not on your PATH" in n for n in result.notes),
+            f"expected a PATH note, got {result.notes}")
+
+    def test_silent_when_uat_is_on_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "uat").symlink_to(ROOT / "bin/uat")
+            result = self._notes(f"{tmp}:/usr/bin:/bin")
+        self.assertFalse([n for n in result.notes if "not on your PATH" in n])
+
+    def test_silent_for_embedded_installs(self):
+        """An embedded project runs .agent-toolkit/toolkit/uat - PATH is moot."""
+        launcher = self.project / ".agent-toolkit" / "toolkit" / "uat"
+        launcher.parent.mkdir(parents=True, exist_ok=True)
+        launcher.write_text("#!/bin/sh\n")
+        result = self._notes("/usr/bin:/bin")
+        self.assertFalse([n for n in result.notes if "not on your PATH" in n])
+
+
+# ----------------------------------------------------------------------
 class TestLauncher(unittest.TestCase):
     """bin/uat must work through a symlink.
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import os
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -595,6 +596,18 @@ def execute(
                     f"({agent.mcp.get('path')}) - add servers manually."
                 )
 
+    # The generated CORE.md and workflow phases tell the agent to run bare
+    # `uat` (phase 05 installs the stack's packs, phase 08 the design MCP).
+    # Without it on PATH those instructions are `command not found`, so the
+    # install has quietly created a dependency it never checked.
+    if not (dest / "toolkit" / "uat").is_file() and not uat_on_path():
+        result.notes.append(
+            "`uat` is not on your PATH, but the generated .agent-toolkit/CORE.md "
+            "tells the agent to run it (phase 05 installs the stack's rule packs). "
+            "Symlink it: ln -s " + str(toolkit_root / "bin" / "uat")
+            + " ~/.local/bin/uat"
+        )
+
     # 7. state
     _write_state(dest, plan, toolkit_root, force=True, report=report)
 
@@ -691,6 +704,15 @@ def _toolkit_version(toolkit_root: Path) -> str:
 # ----------------------------------------------------------------------
 # status / uninstall
 # ----------------------------------------------------------------------
+
+def uat_on_path() -> bool:
+    """Is a `uat` executable resolvable on PATH?
+
+    Only the name matters, not which checkout it points at: the generated
+    files deliberately say plain `uat` so they stay portable when committed.
+    """
+    return shutil.which("uat") is not None
+
 
 def load_state(project: Path) -> dict:
     return read_json(project / TOOLKIT_DIR / STATE_FILE, default={})
