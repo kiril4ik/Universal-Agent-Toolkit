@@ -17,6 +17,10 @@ implemented is not.
 
 There are two paths. Decide which one applies before starting, and say so.
 
+**On Claude Code, prefer Claude Design for whichever path you are on.** See
+"Claude Code: use Claude Design" below before you start — on Path A it
+receives the imported design, and on Path B it is how you generate one.
+
 ## Path A - a design already exists (Figma-first)
 
 **This is the preferred path when a designer is involved.** An existing design
@@ -24,7 +28,7 @@ system always outranks anything an agent generates.
 
 ### Setup
 
-The `figma-design` pack installs the MCP configuration and the integration
+The `mcp-figma` pack installs the MCP configuration and the integration
 guide. It requires things this toolkit cannot provide for you:
 
 - the Figma desktop app, running
@@ -98,10 +102,67 @@ Visible focus on every interactive element. Colour is never the only carrier
 of meaning. Touch targets large enough to hit. Motion that respects
 `prefers-reduced-motion`.
 
+## Claude Code: use Claude Design
+
+When the agent is Claude Code, Claude Design is the preferred surface for this
+phase. It keeps the design as a real, revisable artifact rather than prose
+describing one, and it hands off to implementation without going through a
+screenshot.
+
+Check whether it is connected before you start:
+
+```bash
+claude mcp list          # is `claude-design` there?
+```
+
+If it is not, install the pack and follow what it tells you:
+
+```bash
+uat install --project . --agent claude-code --add mcp-claude-design
+```
+
+`.agent-toolkit/mcp/README.md` then carries the exact steps. In short:
+
+```bash
+claude mcp add --scope user --transport http claude-design https://api.anthropic.com/v1/design/mcp
+```
+
+then, in Claude Code, `/design-login` once, and `/design-sync` to pull this
+project's design system in.
+
+**User scope, not project scope, is deliberate.** Claude Design is tied to an
+individual Anthropic account and a paid plan. Putting it in a committed
+`.mcp.json` gives every teammate an entry that will not work until they
+personally sign in, and that some of them may not be entitled to use at all.
+
+### Prerequisites this toolkit cannot satisfy
+
+A paid plan (Pro, Max, Team or Enterprise), and Claude Design is in beta. If
+the plan does not include it, **say so and fall back** to the ordinary path
+below — do not describe designs you could not actually produce.
+
+Other agents cannot use this server: `/design-login` and `/design-sync` are
+Claude Code commands. On any other agent, skip this section entirely.
+
+### How it changes each path
+
+- **Path A (Figma exists)** — Figma still owns the source of truth. Use
+  `/design-sync` so what you generate starts from the real components rather
+  than from scratch, and keep pulling values from Figma.
+- **Path B (no design exists)** — generate in Claude Design instead of
+  improvising screen by screen. Establish direction, then tokens, then
+  components, then screens, exactly as below; Claude Design is the surface,
+  not a replacement for the order.
+
+The rules below still apply in full. Claude Design does not exempt you from
+the contrast checks, the five states per screen, or the accessibility
+requirements — it makes them easier to see, which is the point.
+
 ## Output
 
 `docs/design/` - direction, tokens (in a machine-readable form the code can
 import), component specifications, and screen designs or references.
 
 Plus `.agent-toolkit/reports/08-design.md`, stating which path was used and,
-for Path A, what could not be pulled from the source.
+for Path A, what could not be pulled from the source. When Claude Design was
+used, link the designs; when it was unavailable, say why.
