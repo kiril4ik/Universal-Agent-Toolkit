@@ -25,7 +25,7 @@ Policy we author and own: safety, git hygiene, verification, interaction
 modes. Always installed, because it applies regardless of stack.
 
 ### `catalog/workflow/`
-The twelve-phase planning sequence, written to be executable by any agent —
+The fourteen-phase planning sequence, written to be executable by any agent —
 plain Markdown, no tool-specific features.
 
 ### `catalog/packs/<id>/`
@@ -106,10 +106,10 @@ own vendor snapshots with no special casing. A test asserts that resolution.
 
 Two depths:
 
-- **slim** (default, ~380 KB) — CLI and catalog. Everything already installed
+- **slim** (default, ~900 KB) — CLI and catalog. Everything already installed
   works offline; installing a *new* pack needs `uat vendor sync` and network,
   because the upstream bytes are not present.
-- **`--with-vendor`** (~8.2 MB) — every pinned snapshot too, so a new pack can
+- **`--with-vendor`** (~10 MB) — every pinned snapshot too, so a new pack can
   be installed with no network at all.
 
 `EMBEDDED.json` marks the copy and records which depth was used. `uat doctor`
