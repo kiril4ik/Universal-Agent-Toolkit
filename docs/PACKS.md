@@ -5,7 +5,7 @@ install, what to call it, and when it applies. A **profile** is a named
 bundle of packs.
 
 ```bash
-uat catalog                    # 61 packs, 6 profiles
+uat catalog                    # 62 packs, 6 profiles
 uat catalog --search wordpress # search all ~450 vendored rule documents
 uat catalog --unmapped         # vendored content no pack exposes
 ```
@@ -14,16 +14,24 @@ uat catalog --unmapped         # vendored content no pack exposes
 
 | Tier | Count | When it installs |
 |---|---|---|
-| `core` | 3 | always, in every install |
+| `core` | 4 | on the detection path, and through the `core` profile |
 | `recommended` | 8 | when the detected stack asks for it |
 | `optional` | 50 | when you ask for it, or a profile includes it |
 
 **Core** is `superpowers` (engineering-discipline skills), `security` (OWASP
-rules) and `karpathy-guidelines` (anti-overcomplication guardrails). Those
-apply to any codebase in any language, which is the bar for core.
+rules), `karpathy-guidelines` (anti-overcomplication guardrails) and
+`engineering-principles` (SOLID, DRY, KISS). Those apply to any codebase in
+any language, which is the bar for core.
+
+> **Core is not a hard override.** Detection adds it automatically, and every
+> profile inherits it, because each one `extends` the `core` profile directly
+> or through `frontend` — but
+> `--packs a b c` means *exactly* those, so an explicit list gets only what it
+> names. That is the escape hatch, and it is why the `core` profile lists the
+> same packs rather than relying on the tier.
 
 > A bare `uat install --agent <id> --yes` on a project with no detectable
-> stack installs the core tier only — three packs. That is the floor, not a
+> stack installs the core tier only — four packs. That is the floor, not a
 > setup. Pick a profile or use the interactive list for real work.
 
 ## How packs get selected
@@ -65,7 +73,7 @@ Symfony, Vue, MySQL or Flutter rules polluting the agent's context.
 
 | Profile | Packs | For |
 |---|---|---|
-| `core` | 5 | the floor plus safety essentials |
+| `core` | 6 | the floor plus safety essentials |
 | `frontend` | 10 | any browser UI |
 | `nextjs` | 18 | Next.js + React + Tailwind + TypeScript |
 | `laravel-react` | 19 | Laravel API with a React front end |
@@ -122,7 +130,7 @@ not a copy:
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   61 packs - mostly small JSON pointers
+catalog/packs/    328 KB   62 packs - mostly small JSON pointers
 ```
 
 ### Our own files

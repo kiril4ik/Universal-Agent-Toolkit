@@ -224,7 +224,7 @@ normally a typo in a `from` path, or an upstream that renamed a file after a
 ### Tests fail after my change
 
 ```bash
-./bin/uat-test        # 161 tests
+./bin/uat-test        # 166 tests
 ./bin/uat doctor
 ./bin/uat install --project /tmp/probe --agent claude-code --yes --dry-run
 ```

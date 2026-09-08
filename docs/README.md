@@ -40,7 +40,7 @@ reference, and each page answers one question.
 
 - `uat` means `./bin/uat` from a toolkit checkout, or
   `.agent-toolkit/toolkit/uat` in an embedded project.
-- Counts (61 packs, 14 agents, 161 tests) are what the current tree reports.
+- Counts (62 packs, 14 agents, 166 tests) are what the current tree reports.
   Confirm with `uat catalog`, `uat agents` and `./bin/uat-test`; those are the
   authority, not this prose.
 - Anything under `vendor/` is a verbatim upstream snapshot and is never

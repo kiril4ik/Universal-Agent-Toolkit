@@ -350,7 +350,7 @@ and no undeclared directory is sitting in `vendor/`.
 ```
 Toolkit self-check
   ok  registry: 14 agents
-  ok  catalog:  61 packs, 6 profiles
+  ok  catalog:  62 packs, 6 profiles
   ok  vendor superpowers: b36e082 verified
   ...
   ok  every vendored skill is reachable by a pack

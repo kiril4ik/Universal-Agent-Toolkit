@@ -44,6 +44,8 @@ It can install and configure:
 
 - engineering-discipline **skills** (brainstorming, TDD, systematic debugging,
   verification, code review)
+- **engineering principles** — SOLID, DRY, KISS, YAGNI, clean code and
+  commenting, installed by default
 - stack **rules** and best practices — 41 curated packs, plus ~410 more
   vendored rule documents reachable on demand
 - **MCP servers** — Playwright, Context7, GitHub, Figma
@@ -135,7 +137,7 @@ ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
 
 ```bash
 ./bin/uat agents                    # 14 supported agents and what each one gets
-./bin/uat catalog                   # 61 packs and 6 profiles
+./bin/uat catalog                   # 62 packs and 6 profiles
 ./bin/uat detect  --project ~/app   # what stack is in there, and the evidence
 ./bin/uat install --project ~/app --agent claude-code
 ```
@@ -414,7 +416,7 @@ guide, a company's internal rules — with
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   61 packs - mostly small JSON pointers into vendor/
+catalog/packs/    328 KB   62 packs - mostly small JSON pointers into vendor/
 ```
 
 A pack says *which* vendored file to install, what to call it, and when it
@@ -470,7 +472,7 @@ Python 3.9+ and git. No dependencies, no install step, no build.
 ## Tests
 
 ```bash
-./bin/uat-test     # 161 tests
+./bin/uat-test     # 166 tests
 ./bin/uat doctor   # verify catalog, registry and vendored snapshots
 ```
 
