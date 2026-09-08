@@ -150,6 +150,28 @@ def cmd_agents(args) -> int:
 
 def cmd_catalog(args) -> int:
     _, catalog = _load(TOOLKIT_ROOT)
+    if getattr(args, "search", None):
+        from .catalog import search_rule_documents
+        hits = search_rule_documents(TOOLKIT_ROOT, args.search)
+        if not hits:
+            print(dim(f"  nothing matches {args.search!r}"))
+            return 0
+        print(bold(f"{len(hits)} vendored rule document(s) matching {args.search!r}"))
+        packed = {f["from"].split("/")[-1] for p in catalog
+                  for vm in p.vendor_maps for f in
+                  [{"from": s} for s, _ in vm.files]}
+        for vendor, stem, size in hits:
+            note = ""
+            for p in catalog:
+                for vm in p.vendor_maps:
+                    for frm, _ in vm.files:
+                        if vm.vendor == vendor and frm.split("/")[-1].startswith(stem + "."):
+                            note = green(f"  (pack: {p.id})")
+            print(f"  {vendor:<22} {stem:<48} {dim(str(size) + ' B')}{note}")
+        print()
+        print(dim("  install one with:  uat add-rule <vendor>:<name> --project ."))
+        return 0
+
     if getattr(args, "unmapped", False):
         from .catalog import unmapped_rule_files, unreachable_vendor_content
         print(bold("Vendored content with no pack"))
@@ -369,6 +391,39 @@ PHASES = [
 ]
 
 
+def cmd_add_rule(args) -> int:
+    """Install any vendored rule document, pack or no pack."""
+    from .catalog import find_rule_document
+
+    registry, _ = _load(TOOLKIT_ROOT)
+    project = _project(args)
+    if not (project / inst.TOOLKIT_DIR).is_dir():
+        raise ToolkitError(f"no toolkit installed in {project}. Run `uat install` first.")
+
+    vendor, rel, stem, src = find_rule_document(TOOLKIT_ROOT, args.rule)
+    name = args.as_name or (stem.upper().replace("-", "_") + ".md")
+    if not name.endswith(".md"):
+        name += ".md"
+
+    dest = project / inst.TOOLKIT_DIR / "rules" / name
+    report = Report(dry_run=args.dry_run)
+    from .util import copy_file
+    copy_file(src, dest, force=args.force, report=report)
+
+    if not args.dry_run and dest.is_file():
+        inst.refresh(project, TOOLKIT_ROOT, registry, report=report)
+
+    print(report.render(project, verbose=False) or dim("  no change"))
+    print(f"\n  {report.summary()}")
+    if report.conflicts():
+        print(yellow("  a file of that name exists; use --as NAME.md or --force"))
+        return 2
+    print()
+    print(f"  {green('installed')} {vendor}:{stem} -> .agent-toolkit/rules/{name}")
+    print(dim("  this is community/vendored content - read it before relying on it"))
+    return 0
+
+
 def cmd_workflow(args) -> int:
     """Show how far the planning workflow has progressed."""
     project = _project(args)
@@ -564,8 +619,8 @@ def cmd_doctor(args) -> int:
         unmapped = unmapped_rule_files(catalog, TOOLKIT_ROOT)
         for vendor, count in sorted(unmapped.items()):
             if count:
-                print(dim(f"  --  {vendor}: {count} rule file(s) vendored with no pack "
-                          f"(expected; run `uat catalog --unmapped`)"))
+                print(dim(f"  --  {vendor}: {count} rule file(s) with no pack - reachable "
+                          f"via `uat add-rule` (find them with `catalog --search`)"))
 
     for name in ("catalog/core", "catalog/workflow"):
         if not (TOOLKIT_ROOT / name).exists():
@@ -601,6 +656,8 @@ def build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("catalog", help="list available packs and profiles")
     c.add_argument("--unmapped", action="store_true",
                    help="show vendored content that no pack exposes")
+    c.add_argument("--search", metavar="TERM",
+                   help="search every vendored rule document by name")
     c.set_defaults(func=cmd_catalog)
 
     d = sub.add_parser("detect", help="show what stack is detected in a project")
@@ -628,6 +685,17 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--with-vendor", action="store_true",
                    help="with --embed, include every vendored upstream (fully offline, larger)")
     i.set_defaults(func=cmd_install)
+
+    ar = sub.add_parser("add-rule",
+                        help="install any vendored rule document, with or without a pack")
+    ar.add_argument("rule", metavar="VENDOR:NAME",
+                    help="e.g. awesome-copilot:wordpress (find it with catalog --search)")
+    ar.add_argument("--project", default=".")
+    ar.add_argument("--as", dest="as_name", metavar="NAME.md",
+                    help="filename to install as (default: derived from the source)")
+    ar.add_argument("--force", action="store_true")
+    ar.add_argument("--dry-run", action="store_true")
+    ar.set_defaults(func=cmd_add_rule)
 
     w = sub.add_parser("workflow", help="show planning workflow progress")
     w.add_argument("--project", default=".")

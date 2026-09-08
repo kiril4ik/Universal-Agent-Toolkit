@@ -733,3 +733,57 @@ def _strip_our_mcp_servers(
     if not report.dry_run:
         path.write_text(dumps_json(leftover), encoding="utf-8")
     report.record("skip", path, f"removed {len(removed)} server(s), kept the rest")
+
+
+def refresh(project: Path, toolkit_root: Path, registry: Registry, *, report: Report) -> None:
+    """Re-render CORE.md and START-HERE.md from what is on disk.
+
+    Anything that changes the installed rule set - `uat add-rule`, or a human
+    dropping a file into rules/ - would otherwise leave the router listing a
+    stale set. The router is generated, so regenerating it is the fix.
+    """
+    dest = project / TOOLKIT_DIR
+    state = read_json(dest / STATE_FILE, default={})
+    doc = read_json(dest / PROJECT_FILE, default={})
+    if not state:
+        raise ToolkitError(f"no toolkit installation in {project}")
+
+    agents = []
+    for aid in state.get("agents", []):
+        try:
+            agents.append(registry.get(aid))
+        except ToolkitError:
+            continue
+
+    specs = _collect_mcp_specs(dest)
+    skills = _installed_skills(dest)
+    primary_mount = next(
+        (a.skills_path for a in agents if a.supports_skills and skills), None
+    )
+    ctx = render.RenderContext(
+        project_name=project.resolve().name,
+        mode=doc.get("mode", "focused"),
+        agents=[a.id for a in agents],
+        rules=_installed_rules(dest),
+        skills=skills,
+        mcp_servers=[s.name for s in specs],
+        has_workflow=(dest / "workflow" / "README.md").is_file(),
+        has_deploy=(dest / "deploy").exists() or (dest / "docker").exists(),
+        skills_mount=primary_mount,
+        uat_cmd=render.uat_invocation(project, toolkit_root),
+    )
+
+    core_path = dest / "CORE.md"
+    body = render.core_md(ctx)
+    if core_path.exists():
+        body = render.preserve_user_tail(core_path.read_text(encoding="utf-8"), body)
+    write_text(core_path, body, force=True, report=report)
+
+    if ctx.has_workflow:
+        write_text(
+            dest / "START-HERE.md",
+            render.start_here(
+                ctx, claude=any(a.surfaces.get("commands", {}).get("path") for a in agents)
+            ),
+            force=True, report=report,
+        )

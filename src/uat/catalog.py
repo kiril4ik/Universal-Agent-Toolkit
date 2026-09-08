@@ -294,3 +294,55 @@ def unmapped_rule_files(catalog: "Catalog", toolkit_root: Path) -> dict[str, int
         out[vendor] = len([f for f in total
                            if (vendor, f"{sub}/{f.name}") not in used])
     return out
+
+
+# Where each vendored library keeps its rule documents, and how they are named.
+RULE_LIBRARIES = {
+    "awesome-copilot": ("instructions", ".instructions.md"),
+    "awesome-cursorrules": ("rules", ".mdc"),
+}
+
+
+def iter_rule_documents(toolkit_root: Path):
+    """Every vendored rule document, whether or not a pack exposes it.
+
+    The curated packs cover the common stacks. This is the long tail: real,
+    vendored, licence-cleared content that simply has no pack. `uat add-rule`
+    installs from here, so nothing vendored is unreachable.
+    """
+    for vendor, (sub, ext) in RULE_LIBRARIES.items():
+        base = toolkit_root / "vendor" / vendor / sub
+        if not base.is_dir():
+            continue
+        for f in sorted(base.glob("*" + ext)):
+            yield vendor, f"{sub}/{f.name}", f.name[: -len(ext)], f
+
+
+def find_rule_document(toolkit_root: Path, ref: str):
+    """Resolve 'vendor:path' or a bare name to one vendored rule document."""
+    ref = ref.strip()
+    wanted_vendor, _, wanted = ref.partition(":") if ":" in ref else ("", "", ref)
+    matches = []
+    for vendor, rel, stem, path in iter_rule_documents(toolkit_root):
+        if wanted_vendor and vendor != wanted_vendor:
+            continue
+        if wanted in (stem, rel, rel.split("/")[-1]):
+            matches.append((vendor, rel, stem, path))
+    if not matches:
+        raise ToolkitError(
+            f"no vendored rule document matches {ref!r}. "
+            "Search with `uat catalog --search <term>`."
+        )
+    if len(matches) > 1:
+        names = ", ".join(f"{v}:{s}" for v, _, s, _ in matches)
+        raise ToolkitError(f"{ref!r} is ambiguous: {names}")
+    return matches[0]
+
+
+def search_rule_documents(toolkit_root: Path, term: str):
+    term = term.lower()
+    return [
+        (vendor, stem, path.stat().st_size)
+        for vendor, rel, stem, path in iter_rule_documents(toolkit_root)
+        if term in stem.lower()
+    ]

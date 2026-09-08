@@ -219,3 +219,34 @@ Design constraints on that script:
 `surfaces.hooks` in the agent registry declares which agents support this.
 Agents that do not simply skip the step - no `.claude/` directory appears for
 a Cursor-only install.
+
+## Curated packs versus the long tail
+
+Two kinds of vendored content, with different reachability rules.
+
+**Skills** are directories with behaviour. Each must have a pack: vendoring a
+skill no pack installs is dead weight, so `uat doctor` fails on it.
+
+**Rule documents** number 450 across the two libraries. About forty have
+curated packs - the common stacks, carrying stack-detection tokens and a
+reviewed one-line summary. The remainder are niche (single-vendor SDKs,
+one cloud's tooling) or stack-combo files of variable quality.
+
+Generating a pack per document would put 450 entries in `uat catalog` and
+bury the curated forty, which are the ones worth recommending. So the long
+tail is reached directly:
+
+```bash
+uat catalog --search <term>      # search all 450, marking which have packs
+uat add-rule <vendor>:<name>     # install any one of them
+```
+
+This keeps two properties that would otherwise conflict: the catalog stays
+short enough to read, and nothing vendored is unreachable. A pack is then an
+*endorsement* - "this is good, and here is when it applies" - rather than the
+only route to a file.
+
+`add-rule` calls `install.refresh()`, which re-renders `CORE.md` and
+`START-HERE.md` from what is actually on disk. The router is generated, so any
+change to the installed rule set regenerates it rather than leaving a stale
+list - including a human dropping a file into `rules/` by hand.

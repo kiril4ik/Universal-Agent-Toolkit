@@ -295,6 +295,27 @@ Every vendored file is fetched from a pinned commit and hashed:
 
 Vendored content is **never edited**. Our own policy lives in `catalog/core/`.
 
+### Packs are curated; nothing vendored is unreachable
+
+All 24 vendored *skills* have packs. The two rule libraries hold 450
+documents, of which ~40 have curated packs — the common stacks, with stack
+detection and a reviewed summary. The rest are the long tail: niche clouds,
+single-vendor SDKs, and stack-combo files whose quality varies.
+
+Writing 450 packs would make `uat catalog` unusable, so the long tail is
+reachable directly instead:
+
+```bash
+uat catalog --search wordpress          # search all 450 by name
+uat catalog --unmapped                  # everything with no pack
+uat add-rule awesome-copilot:wordpress --project .
+```
+
+`add-rule` installs any vendored document into `.agent-toolkit/rules/` and
+refreshes the router so the agent sees it. `uat doctor` **fails** if a
+vendored *skill* has no pack — that is dead weight — but treats an unmapped
+rule document as normal, because `add-rule` reaches it.
+
 **Not vendored:** Figma's skills are governed by the Figma Developer Terms
 rather than an open-source licence, so the `mcp-figma` pack ships our own
 integration guide and tells you how to install theirs from source.

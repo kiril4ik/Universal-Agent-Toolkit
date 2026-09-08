@@ -529,6 +529,53 @@ class TestVendorReachability(unittest.TestCase):
         self.assertEqual(orphans, {}, f"vendored but no pack installs it: {orphans}")
 
 
+class TestLongTailRules(TempProject):
+    """Everything vendored must be installable, pack or no pack."""
+
+    def test_every_vendored_rule_document_is_resolvable(self):
+        from uat.catalog import find_rule_document, iter_rule_documents
+        docs = list(iter_rule_documents(ROOT))
+        self.assertGreater(len(docs), 400)
+        for vendor, rel, stem, _ in docs:
+            with self.subTest(doc=f"{vendor}:{stem}"):
+                v, r, s_, _p = find_rule_document(ROOT, f"{vendor}:{stem}")
+                self.assertEqual((v, r), (vendor, rel))
+
+    def test_search_finds_by_substring(self):
+        from uat.catalog import search_rule_documents
+        self.assertTrue(search_rule_documents(ROOT, "wordpress"))
+        self.assertEqual(search_rule_documents(ROOT, "zzz-not-a-real-thing"), [])
+
+    def test_unknown_rule_is_a_clear_error(self):
+        from uat.catalog import find_rule_document
+        with self.assertRaises(ToolkitError):
+            find_rule_document(ROOT, "awesome-copilot:definitely-not-here")
+
+    def test_add_rule_installs_and_refreshes_the_router(self):
+        from uat.catalog import find_rule_document
+        from uat.util import copy_file
+        self.install(["claude-code"])
+        vendor, rel, stem, src = find_rule_document(ROOT, "awesome-copilot:memory-bank")
+        dest = self.project / ".agent-toolkit/rules/MEMORY_BANK.md"
+        report = Report()
+        copy_file(src, dest, force=False, report=report)
+        inst.refresh(self.project, ROOT, self.registry, report=report)
+        self.assertTrue(dest.is_file())
+        self.assertIn("MEMORY_BANK.md",
+                      (self.project / ".agent-toolkit/CORE.md").read_text())
+
+    def test_refresh_preserves_user_additions(self):
+        self.install(["claude-code"])
+        core = self.project / ".agent-toolkit/CORE.md"
+        core.write_text(core.read_text() + "\n## Project note\nkeep me\n")
+        inst.refresh(self.project, ROOT, self.registry, report=Report())
+        self.assertIn("keep me", core.read_text())
+
+    def test_refresh_without_install_is_an_error(self):
+        with self.assertRaises(ToolkitError):
+            inst.refresh(self.project, ROOT, self.registry, report=Report())
+
+
 class TestSessionHook(TempProject):
     """The hook is what turns 'available' into 'actually used'."""
 
