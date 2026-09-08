@@ -315,6 +315,19 @@ def write_agent_hooks(
     return True
 
 
+def always_rules(packs: list[Pack], toolkit_root: Path) -> list[str]:
+    """Rule files that apply to any code, whatever the stack.
+
+    Derived from pack tier, not from a list of filenames in code: a core pack
+    is by definition one that applies to any codebase in any language. CORE.md
+    lists these apart from the stack rules, because "read the ones relevant to
+    the file you are touching" is the wrong instruction for SOLID.
+    """
+    core = [p for p in packs if p.tier == "core"]
+    rules, _ = pack_outputs(core, toolkit_root)
+    return rules
+
+
 def pack_outputs(packs: list[Pack], toolkit_root: Path) -> tuple[list[str], list[str]]:
     """Rule filenames and skill names the selected packs will produce.
 
@@ -442,6 +455,7 @@ def execute(
     pred_rules, pred_skills = pack_outputs(plan.packs, toolkit_root)
     rules = sorted(set(_installed_rules(dest)) | set(pred_rules))
     skills = sorted(set(_installed_skills(dest)) | set(pred_skills))
+    always = always_rules(plan.packs, toolkit_root)
     specs = _collect_mcp_specs(dest)
     by_name = {sp.name: sp for sp in specs}
     for sp in predicted_mcp_specs(plan.packs, toolkit_root):
@@ -466,6 +480,7 @@ def execute(
             mode=plan.mode,
             agents=plan.agent_ids,
             rules=rules,
+            always_rules=always,
             skills=skills,
             mcp_servers=[s.name for s in specs],
             has_workflow=has_workflow,
@@ -549,6 +564,7 @@ def execute(
         mode=plan.mode,
         agents=plan.agent_ids,
         rules=rules,
+        always_rules=always,
         skills=skills,
         mcp_servers=[s.name for s in specs],
         has_workflow=has_workflow,

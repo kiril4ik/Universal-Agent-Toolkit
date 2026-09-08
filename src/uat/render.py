@@ -10,7 +10,7 @@ requires regenerating twelve tool files.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .registry import Agent
@@ -31,6 +31,7 @@ class RenderContext:
     has_deploy: bool
     skills_mount: str | None = None   # tool-native skills path, if any
     uat_cmd: str = "uat"              # how to invoke the CLI from this project
+    always_rules: list[str] = field(default_factory=list)  # apply to all code
 
 
 def uat_invocation(project, toolkit_root) -> str:
@@ -50,10 +51,26 @@ def uat_invocation(project, toolkit_root) -> str:
 
 
 def _rule_lines(ctx: RenderContext) -> str:
-    if not ctx.rules:
+    """Only the stack-specific rules; the always-on ones are listed separately."""
+    stack = [r for r in ctx.rules if r not in set(ctx.always_rules)]
+    if not stack:
         return "_No stack rules installed yet._"
     return "\n".join(
-        f"- `{TOOLKIT_DIR}/rules/{name}`" for name in sorted(ctx.rules)
+        f"- `{TOOLKIT_DIR}/rules/{name}`" for name in sorted(stack)
+    )
+
+
+def _always_rule_lines(ctx: RenderContext) -> str:
+    present = [r for r in ctx.always_rules if r in set(ctx.rules)]
+    if not present:
+        return ""
+    lines = "\n".join(
+        f"- `{TOOLKIT_DIR}/rules/{name}`" for name in sorted(present)
+    )
+    return (
+        "\n## Code quality - applies to every file you write\n\n"
+        + lines
+        + "\n\nThese are not stack rules. They apply whatever the language.\n"
     )
 
 
@@ -144,6 +161,7 @@ These are short. Read them once per session and honour them throughout.
 - `{TOOLKIT_DIR}/core/GIT.md` - atomic commits, no AI attribution.
 - `{TOOLKIT_DIR}/core/VERIFICATION.md` - evidence before claiming success.
 {workflow}
+{_always_rule_lines(ctx)}
 ## Stack rules - read the ones relevant to the file you are touching
 
 {_rule_lines(ctx)}
