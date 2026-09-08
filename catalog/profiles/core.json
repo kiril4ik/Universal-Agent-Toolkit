@@ -1,9 +1,10 @@
 {
   "name": "core",
-  "description": "The baseline every project gets: engineering discipline, safety, security rules and documentation lookup.",
+  "description": "The baseline every project gets: engineering discipline, code-quality principles, safety, security rules and documentation lookup.",
   "packs": [
     "superpowers",
     "karpathy-guidelines",
+    "engineering-principles",
     "security",
     "mcp-context7",
     "session-reminder"

@@ -1427,6 +1427,49 @@ class TestEmbedding(TempProject):
         self.assertFalse(embedlib.is_embedded(ROOT))
 
 
+class TestEngineeringPrinciples(TempProject):
+    """SOLID/DRY/KISS must reach every project, and not fight the core rules."""
+
+    def test_every_profile_installs_them(self):
+        cat = Catalog.load(ROOT)
+        for name in sorted(cat.profiles):
+            with self.subTest(profile=name):
+                self.assertIn("engineering-principles", cat.resolve_profile(name),
+                              f"profile {name!r} would ship no code-quality rules")
+
+    def test_detection_path_installs_them(self):
+        cat = Catalog.load(ROOT)
+        self.assertIn("engineering-principles", cat.recommend(set()))
+
+    def test_core_md_separates_always_on_rules_from_stack_rules(self):
+        self.install(["claude-code"], packs=["engineering-principles", "go"])
+        core = (self.project / ".agent-toolkit/CORE.md").read_text()
+        quality = core.index("Code quality")
+        stack = core.index("Stack rules")
+        self.assertLess(quality, stack)
+        # the principles must not be filed under "skip if not your technology"
+        self.assertIn("ENGINEERING_PRINCIPLES.md", core[quality:stack])
+        self.assertIn("GO.md", core[stack:])
+        self.assertNotIn("ENGINEERING_PRINCIPLES.md", core[stack:])
+
+    def test_states_precedence_against_the_simplicity_rules(self):
+        """Two always-on rules that disagree is the failure this must avoid."""
+        body = (ROOT / "catalog/packs/engineering-principles/files/rules"
+                / "ENGINEERING_PRINCIPLES.md").read_text()
+        self.assertIn("PRINCIPLES_PRECEDENCE", body)
+        self.assertIn("karpathy-guidelines", body)
+
+    def test_opinionated_packs_stay_optional(self):
+        """object-calisthenics and design-patterns conflict with YAGNI if forced."""
+        cat = Catalog.load(ROOT)
+        for pid in ("object-calisthenics", "design-patterns"):
+            with self.subTest(pack=pid):
+                self.assertEqual(cat.get(pid).tier, "optional")
+                for name in sorted(cat.profiles):
+                    self.assertNotIn(pid, cat.resolve_profile(name))
+
+
+# ----------------------------------------------------------------------
 class TestPathPrerequisite(TempProject):
     """A non-embedded install writes bare `uat` into CORE.md.
 

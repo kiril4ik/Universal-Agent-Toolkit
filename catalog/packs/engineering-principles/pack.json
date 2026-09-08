@@ -1,0 +1,23 @@
+{
+  "id": "engineering-principles",
+  "title": "Engineering principles (SOLID, DRY, KISS)",
+  "tier": "core",
+  "tags": ["quality", "process"],
+  "detect": [],
+  "summary": "The principles every codebase is judged by - SOLID, DRY, KISS, YAGNI, composition over inheritance - and when applying them early is the mistake.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-cursorrules",
+      "files": [{ "from": "rules/clean-code.mdc", "to": "rules/CLEAN_CODE.md" }]
+    },
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/self-explanatory-code-commenting.instructions.md",
+          "to": "rules/CODE_COMMENTS.md"
+        }
+      ]
+    }
+  ]
+}
