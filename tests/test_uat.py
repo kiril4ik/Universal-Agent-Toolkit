@@ -478,7 +478,7 @@ class TestSkillPrecedence(TempProject):
 
     def test_all_four_known_conflicts_are_addressed(self):
         text = self.readme().lower()
-        for topic in ("classify once", "batch questions", "one gate",
+        for topic in ("classify once", "batch questions", "one stop",
                       "terminal states"):
             self.assertIn(topic, text, f"precedence does not cover: {topic}")
 
@@ -734,6 +734,82 @@ class TestReportedRegressions(TempProject):
         mount = self.project / ".agents/skills"
         self.assertTrue(mount.is_symlink() or mount.is_dir())
         self.assertTrue((mount / "brainstorming/SKILL.md").exists())
+
+
+class TestApprovalGateConsistency(unittest.TestCase):
+    """The gate is stated in four places; they must not contradict each other.
+
+    They did: the triage table said Task work went straight to implementation,
+    11-gate.md said the gate is never skipped at any class, and the session
+    hook demanded it universally. Read one way that means pointless approval
+    stops on one-line fixes; read the other way it means implementing with no
+    approval at all.
+
+    The resolved rule: the APPROVAL never scales away, the REVIEW does.
+    """
+
+    WF = ROOT / "catalog/workflow"
+
+    @staticmethod
+    def _flat(text: str) -> str:
+        """Collapse line wrapping and markdown emphasis, so prose assertions
+        survive reformatting."""
+        return " ".join(text.replace("*", "").replace("`", "").split())
+
+    def readme(self):
+        return self._flat((self.WF / "README.md").read_text())
+
+    def gate(self):
+        return self._flat((self.WF / "11-gate.md").read_text())
+
+    def triage(self):
+        return self._flat((self.WF / "00-triage.md").read_text())
+
+    def test_gate_says_the_approval_never_scales_away(self):
+        self.assertIn("approval is never skipped", self.gate())
+
+    def test_gate_says_the_review_does_scale(self):
+        g = self.gate()
+        self.assertIn("scales with the class", g)
+        for cls in ("Task", "Feature", "Product"):
+            self.assertIn(cls, g, f"gate does not say what {cls} class presents")
+
+    def test_triage_table_includes_the_gate_for_every_class(self):
+        """The Task row used to read '01, then implement' - no approval at all."""
+        raw = (self.WF / "README.md").read_text().splitlines()
+        rows = [ln for ln in raw if ln.startswith(("| **Task**", "| **Feature**",
+                                                  "| **Product**"))]
+        self.assertEqual(len(rows), 3, "triage table changed shape")
+        for row in rows:
+            phases = row.rsplit("|", 2)[-2]
+            self.assertTrue(
+                "11" in phases or "all" in phases,
+                f"class row omits the gate: {row}",
+            )
+
+    def test_readme_no_longer_claims_task_has_no_gate(self):
+        self.assertNotIn("There is no phase 11", self.readme())
+
+    def test_task_approval_is_one_stop_not_two(self):
+        r = self.readme()
+        self.assertIn("One stop, not two", r)
+        self.assertIn("is phase 11", r)
+
+    def test_size_check_carries_the_design_so_the_answer_can_be_approval(self):
+        t = self.triage()
+        self.assertIn("put the design in the question", t)
+        self.assertIn("is the phase 11 approval", t)
+
+    def test_no_surface_licenses_implementing_without_approval(self):
+        banned = "going straight to implementation with tests. Do you want"
+        for name in ("README.md", "00-triage.md", "11-gate.md"):
+            self.assertNotIn(banned, self._flat((self.WF / name).read_text()), name)
+
+    def test_session_hook_matches_the_workflow(self):
+        hook = (ROOT / "catalog/packs/session-reminder/files/hooks/"
+                "session-start.sh").read_text()
+        self.assertIn("11-gate.md", hook)
+        self.assertIn("human approval", hook)
 
 
 class TestDeployRollback(unittest.TestCase):

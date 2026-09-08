@@ -25,18 +25,26 @@ them once, before you invoke your first skill.
 approves.** Everything before the gate is cheap to change. Everything after
 it is expensive.
 
+This holds at every class. What you *present* for approval scales - a Task
+gets a few sentences, a Product gets the coherence review - but the stop
+itself does not scale away.
+
 ## Triage first
 
 Read `00-triage.md` and classify. Do not run twelve phases on a one-line fix.
 
 | Class | What it is | Phases |
 |---|---|---|
-| **Task** | a bounded change to a flow already in this repo | `01`, then implement |
-| **Feature** | a new capability inside an existing product | `01` `02` `03` `06` `10` `11` `12` |
+| **Task** | a bounded change to a flow already in this repo | `01`, short design, **`11`**, implement |
+| **Feature** | a new capability inside an existing product | `01` `02` `03` `06` `10` **`11`** `12` |
 | **Product** | a new project, or a structural change | all |
 
 Announce the classification and what you are skipping, with the reason.
 The class only ratchets up: hidden complexity means stop and say so.
+
+**Phase 11 appears in every row.** What you present there scales with the
+class - for a Task it is a few sentences, not a coherence matrix - but the
+approval itself is never skipped. See `11-gate.md`.
 
 ## Phases
 
@@ -94,15 +102,20 @@ The exception, and the only one: genuinely exploratory design in phases 02
 and 08 when the interaction mode is `thorough`. There, one at a time is
 better and the skill's cadence wins.
 
-### 3. One gate, not two
+### 3. One stop, not two
 
-`brainstorming` has its own approval gate. So does phase 11.
+`brainstorming` has its own approval gate. So does phase 11. They are the same
+requirement, and you stop **once**:
 
-- **Task class** — brainstorming's gate *is* the gate. There is no phase 11.
+- **Task class** — brainstorming's short-design approval *is* phase 11. Present
+  the design, get an explicit yes, implement. Do not additionally run a
+  coherence review over artifacts that do not exist.
 - **Feature / Product** — brainstorming's approval covers its own design
-  section only. The real gate is phase 11, after the plan exists.
+  section as you go; phase 11 is the single stop before implementation, after
+  the plan exists.
 
-Never stop twice for approval of the same thing.
+Never stop twice for approval of the same thing - and never skip the approval
+because you already discussed it. Discussion is not approval.
 
 ### 4. Terminal states do not apply here
 
@@ -160,7 +173,9 @@ missing or stale. Read `.agent-toolkit/reports/` before re-planning anything.
 |---|---|
 | "I'll classify again now that I'm in brainstorming" | You classified in phase 00. Carry it in. |
 | "The skill says one question at a time" | Superseded here, except thorough-mode design. |
-| "I got approval in brainstorming, so I can implement" | For Feature and Product, the gate is phase 11. |
+| "I got approval in brainstorming, so I can implement" | For Task that approval IS the gate. For Feature and Product, phase 11 is the stop. |
+| "Task class skips phase 11" | It skips the coherence *review*, never the approval. |
+| "I explained what I'd do, so I can start" | Explaining is not asking. Wait for the answer. |
 | "Brainstorming says go straight to writing-plans" | That is its standalone path. Phases 03-09 come first. |
 | "I'll write my own plan format, it's clearer" | One plan, one format. Use `writing-plans`. |
 | "Design first, we can adjust the data model later" | That is the rework this ordering exists to prevent. |

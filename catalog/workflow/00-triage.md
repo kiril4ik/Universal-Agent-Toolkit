@@ -29,13 +29,20 @@ Say something like:
 
 ## Size check for very small work
 
-If the work is genuinely small, ask once:
+If the work is genuinely small, ask once - and **put the design in the
+question**, so the answer is a decision about what you will actually do:
 
-> This is small enough that the full workflow would cost more than the change.
-> I suggest going straight to implementation with tests. Do you want the
-> full planning sequence anyway?
+> This looks like Task-class work: <what you will change, which files, how you
+> will test it>. The full planning sequence would cost more than the change,
+> so I'd implement it directly with a test. Shall I?
 
-Ask this **once**. If the answer is no, proceed. Do not re-ask every phase.
+A yes to that is the phase 11 approval for Task work: you presented the design
+and a human decided. There is no separate gate afterwards - see `11-gate.md`.
+
+A no means run more of the sequence.
+
+Ask this **once**. Do not re-ask every phase. And do not ask it without the
+design - "shall I just do it?" is not something anyone can approve.
 
 ## Classify once
 
