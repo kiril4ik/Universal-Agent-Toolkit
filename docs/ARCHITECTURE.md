@@ -250,3 +250,46 @@ only route to a file.
 `START-HERE.md` from what is actually on disk. The router is generated, so any
 change to the installed rule set regenerates it rather than leaving a stale
 list - including a human dropping a file into `rules/` by hand.
+
+## One store, many pointers
+
+`vendor/` and `catalog/packs/` are often mistaken for two copies of the same
+material. They are not:
+
+| | Holds | Size |
+|---|---|---|
+| `vendor/<id>/` | the actual bytes, from a pinned commit or a local snapshot | ~9.4 MB |
+| `catalog/packs/<id>/pack.json` | which vendored file to install, as what, and when it applies | ~400 B each |
+
+Content exists exactly once. A pack is a curated pointer plus metadata -
+tier, tags, stack-detection tokens, a reviewed summary - so adding one costs
+almost nothing and never duplicates a file.
+
+Packs may also carry their own `files/` for content we author (the deploy
+scripts, the session hook, the Figma integration guide). That content has no
+upstream, so it lives with the pack rather than in `vendor/`.
+
+## Local vendoring
+
+Not every worthwhile source is a public git repository: house style guides,
+a company's internal conventions, a skill you wrote. `uat vendor add-local`
+snapshots a directory into `vendor/<id>/`, content-hashes it, and registers a
+`{"type": "local"}` entry in `catalog/vendor.json`.
+
+Local sources get the same integrity guarantee as git ones - `vendor verify`
+recomputes the hash, so an edited snapshot fails - and differ only in what
+`sync` does:
+
+- source path present -> re-copy from it, refreshing the snapshot
+- source path absent -> verify the committed snapshot and report `unchanged`
+
+The second case is the normal one for a teammate who cloned the repository:
+they have the snapshot, not your folder, and everything still works.
+
+Copying a directory into `vendor/` by hand is *not* supported: it would be
+ignored by sync, by verify, and by every pack. `uat doctor` fails on any
+directory in `vendor/` that `catalog/vendor.json` does not declare.
+
+A test also asserts no local entry records a path under `/tmp` or a home
+directory, because `vendor.json` is committed and a path from one machine is
+worse than useless on another.

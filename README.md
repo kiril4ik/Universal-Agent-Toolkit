@@ -295,6 +295,45 @@ Every vendored file is fetched from a pinned commit and hashed:
 
 Vendored content is **never edited**. Our own policy lives in `catalog/core/`.
 
+### How vendor/ and packs relate
+
+They are not two copies of the same thing — it is one store and many pointers.
+
+```
+vendor/          9.4 MB   the actual content, fetched from pinned commits
+catalog/packs/    328 KB   60 packs - each one a small JSON pointer into vendor/
+```
+
+A pack does not contain content. It says *which* vendored file to install,
+what to call it, and when it applies:
+
+```jsonc
+{ "id": "go", "detect": ["go"],
+  "vendor_maps": [{ "vendor": "awesome-copilot",
+    "files": [{ "from": "instructions/go.instructions.md", "to": "rules/GO.md" }] }] }
+```
+
+So content lives exactly once. Adding a pack costs ~400 bytes, not a copy.
+
+### Vendoring your own content
+
+Not everything worth vendoring is a public git repo — house style guides,
+a company's internal rules, a skill you wrote:
+
+```bash
+uat vendor add-local ~/work/acme-rules --id acme --license "Proprietary - ACME"
+```
+
+It snapshots the directory into `vendor/acme/`, content-hashes it, and
+registers it in `catalog/vendor.json`. From then on it is treated exactly like
+a git upstream: `vendor verify` catches edits to the snapshot, and
+`vendor sync` re-copies from the original when that path still exists (a
+teammate who cloned the repo keeps the snapshot without needing your folder).
+
+Just copying a directory into `vendor/` by hand does **not** work — it would
+be invisible to sync, verify and every pack. `uat doctor` fails if it finds
+one, and tells you to register or delete it.
+
 ### Packs are curated; nothing vendored is unreachable
 
 All 24 vendored *skills* have packs. The two rule libraries hold 450

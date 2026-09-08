@@ -536,7 +536,9 @@ def cmd_vendor(args) -> int:
         for up in ups:
             ok, detail = vendorlib.verify_one(up, TOOLKIT_ROOT)
             mark = green("ok") if ok else red("!!")
-            print(f"  {mark} {up.id:<26} {up.short_ref}  {up.license:<12} {dim(detail)}")
+            kind = cyan("local") if up.is_local else dim("git  ")
+            print(f"  {mark} {kind} {up.id:<24} {up.short_ref:<8} "
+                  f"{up.license[:24]:<26} {dim(detail)}")
         return 0
 
     if args.vendor_cmd == "verify":
@@ -550,6 +552,20 @@ def cmd_vendor(args) -> int:
             print(red(bold(f"{failed} upstream(s) failed verification")))
             return 1
         print(green(bold("all vendored snapshots match their pins")))
+        return 0
+
+    if args.vendor_cmd == "add-local":
+        vid, detail = vendorlib.add_local(
+            TOOLKIT_ROOT, Path(args.path),
+            vendor_id=args.id, license=args.license,
+            notes=args.notes or "", force=args.force,
+        )
+        print(f"  {green('vendored')} {vid}  {dim(detail)}")
+        print()
+        print("  registered in catalog/vendor.json and content-hashed.")
+        print("  Next: add a pack so it can be installed -")
+        print(cyan(f"    catalog/packs/<id>/pack.json with a vendor_map for '{vid}'"))
+        print(dim("  See docs/ARCHITECTURE.md for the pack format."))
         return 0
 
     # sync
@@ -621,6 +637,15 @@ def cmd_doctor(args) -> int:
             if count:
                 print(dim(f"  --  {vendor}: {count} rule file(s) with no pack - reachable "
                           f"via `uat add-rule` (find them with `catalog --search`)"))
+
+    declared = {u.id for u in ups}
+    for present in vendorlib.vendored_ids(TOOLKIT_ROOT):
+        if present not in declared:
+            problems.append(
+                f"vendor/{present} is not declared in catalog/vendor.json - it is "
+                "ignored by sync, verify and every pack. Register it with "
+                "`uat vendor add-local`, or delete it."
+            )
 
     for name in ("catalog/core", "catalog/workflow"):
         if not (TOOLKIT_ROOT / name).exists():
@@ -717,6 +742,16 @@ def build_parser() -> argparse.ArgumentParser:
     vl.set_defaults(func=cmd_vendor)
     vv = vs.add_parser("verify", help="check snapshots match their pinned commits")
     vv.set_defaults(func=cmd_vendor)
+    va = vs.add_parser("add-local",
+                       help="vendor a local directory (your own or your company's rules)")
+    va.add_argument("path", help="directory to snapshot into vendor/")
+    va.add_argument("--id", required=True, help="vendor id, e.g. acme-house-rules")
+    va.add_argument("--license", required=True,
+                    help="licence or ownership note, e.g. 'Proprietary - ACME internal'")
+    va.add_argument("--notes", help="what this is and where it came from")
+    va.add_argument("--force", action="store_true", help="replace an existing snapshot")
+    va.set_defaults(func=cmd_vendor)
+
     vy = vs.add_parser("sync", help="fetch upstreams at their pinned commits")
     vy.add_argument("--only", nargs="*", metavar="ID")
     vy.add_argument("--force", action="store_true", help="re-fetch even if unchanged")

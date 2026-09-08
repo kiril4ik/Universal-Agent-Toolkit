@@ -529,6 +529,102 @@ class TestVendorReachability(unittest.TestCase):
         self.assertEqual(orphans, {}, f"vendored but no pack installs it: {orphans}")
 
 
+class TestLocalVendoring(unittest.TestCase):
+    """Not everything worth vendoring lives in a public git repo."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="uat-local-"))
+        # a fake toolkit root, so tests never touch the real vendor/
+        self.root = self.tmp / "toolkit"
+        (self.root / "catalog").mkdir(parents=True)
+        (self.root / "catalog" / "vendor.json").write_text(
+            json.dumps({"upstreams": []}), encoding="utf-8")
+        self.src = self.tmp / "house-rules"
+        (self.src / "skills" / "house-style").mkdir(parents=True)
+        (self.src / "skills" / "house-style" / "SKILL.md").write_text(
+            "---\nname: house-style\ndescription: ours\n---\n# House style\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_local_directory_can_be_vendored(self):
+        vid, _ = vendorlib.add_local(
+            self.root, self.src, vendor_id="house", license="Proprietary")
+        self.assertEqual(vid, "house")
+        self.assertTrue(
+            (self.root / "vendor/house/skills/house-style/SKILL.md").is_file())
+
+    def test_it_is_registered_and_verifiable(self):
+        vendorlib.add_local(self.root, self.src, vendor_id="house",
+                            license="Proprietary")
+        ups = vendorlib.load_upstreams(self.root)
+        self.assertEqual([u.id for u in ups], ["house"])
+        self.assertTrue(ups[0].is_local)
+        ok, detail = vendorlib.verify_one(ups[0], self.root)
+        self.assertTrue(ok, detail)
+
+    def test_editing_the_snapshot_fails_verification(self):
+        vendorlib.add_local(self.root, self.src, vendor_id="house",
+                            license="Proprietary")
+        target = self.root / "vendor/house/skills/house-style/SKILL.md"
+        target.write_text(target.read_text() + "\ntampered\n")
+        ok, detail = vendorlib.verify_one(
+            vendorlib.load_upstreams(self.root)[0], self.root)
+        self.assertFalse(ok)
+        self.assertIn("modified", detail)
+
+    def test_resync_picks_up_source_changes(self):
+        vendorlib.add_local(self.root, self.src, vendor_id="house",
+                            license="Proprietary")
+        (self.src / "skills" / "house-style" / "SKILL.md").write_text(
+            "---\nname: house-style\ndescription: ours\n---\n# Updated\n")
+        status, _ = vendorlib.sync_one(
+            vendorlib.load_upstreams(self.root)[0], self.root)
+        self.assertEqual(status, "synced")
+        self.assertIn("Updated",
+                      (self.root / "vendor/house/skills/house-style/SKILL.md").read_text())
+
+    def test_missing_source_still_verifies_the_snapshot(self):
+        """A teammate cloning the repo has the snapshot but not your folder."""
+        vendorlib.add_local(self.root, self.src, vendor_id="house",
+                            license="Proprietary")
+        shutil.rmtree(self.src)
+        status, detail = vendorlib.sync_one(
+            vendorlib.load_upstreams(self.root)[0], self.root)
+        self.assertEqual(status, "unchanged")
+        self.assertIn("source not on this machine", detail)
+
+    def test_existing_id_is_refused_without_force(self):
+        vendorlib.add_local(self.root, self.src, vendor_id="house",
+                            license="Proprietary")
+        with self.assertRaises(ToolkitError):
+            vendorlib.add_local(self.root, self.src, vendor_id="house",
+                                license="Proprietary")
+
+    def test_non_directory_is_refused(self):
+        with self.assertRaises(ToolkitError):
+            vendorlib.add_local(self.root, self.tmp / "nope", vendor_id="x",
+                                license="Proprietary")
+
+
+class TestVendorDeclaration(unittest.TestCase):
+    def test_every_vendor_directory_is_declared(self):
+        """Undeclared content in vendor/ is invisible to sync, verify and packs."""
+        declared = {u.id for u in vendorlib.load_upstreams(ROOT)}
+        present = set(vendorlib.vendored_ids(ROOT))
+        self.assertEqual(present - declared, set(),
+                         "vendor/ holds directories not in catalog/vendor.json")
+
+    def test_no_local_entry_points_outside_the_repo(self):
+        """A committed absolute path from one machine breaks every other clone."""
+        for up in vendorlib.load_upstreams(ROOT):
+            if up.is_local and up.path:
+                self.assertFalse(
+                    up.path.startswith(("/tmp", "/private/tmp", str(Path.home()))),
+                    f"{up.id} points at a machine-specific path: {up.path}",
+                )
+
+
 class TestLongTailRules(TempProject):
     """Everything vendored must be installable, pack or no pack."""
 

@@ -18,7 +18,11 @@
       "repo": "https://github.com/obra/superpowers.git",
       "ref": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
       "license": "MIT",
-      "include": ["skills", "LICENSE", "README.md"],
+      "include": [
+        "skills",
+        "LICENSE",
+        "README.md"
+      ],
       "notes": "Jesse Vincent's engineering-discipline skills: brainstorming, writing-plans, TDD, systematic debugging, verification. The backbone of the planning workflow."
     },
     {
@@ -26,7 +30,11 @@
       "repo": "https://github.com/vercel-labs/web-interface-guidelines.git",
       "ref": "e3d624baaf29dc1fc645aff3e38f03e564d2d6b1",
       "license": "MIT",
-      "include": ["AGENTS.md", "LICENSE", "README.md"],
+      "include": [
+        "AGENTS.md",
+        "LICENSE",
+        "README.md"
+      ],
       "notes": "Vercel Labs interface quality checklist (accessibility, motion, forms, focus). AGENTS.md is the guideline text itself."
     },
     {
@@ -49,7 +57,10 @@
       "repo": "https://github.com/emavv/karpathy-guidelines.git",
       "ref": "e02e9a451bed53fc661a82269e1a76f61af5ae3f",
       "license": "MIT (stated in README; repository has no LICENSE file)",
-      "include": ["codex/karpathy-guidelines", "README.md"],
+      "include": [
+        "codex/karpathy-guidelines",
+        "README.md"
+      ],
       "notes": "Behavioural guardrails against LLM overcomplication: surgical changes, surfaced assumptions, verifiable success criteria."
     },
     {
@@ -57,7 +68,11 @@
       "repo": "https://github.com/github/awesome-copilot.git",
       "ref": "f95f1b4c3b153984e3da2744cef395c2355d0a44",
       "license": "MIT",
-      "include": ["instructions", "LICENSE", "README.md"],
+      "include": [
+        "instructions",
+        "LICENSE",
+        "README.md"
+      ],
       "notes": "GitHub's curated instruction library - 193 technology guides. The primary source of stack rules. Only the instructions/ directory is vendored; the full repository is ~200 MB."
     },
     {
@@ -65,7 +80,11 @@
       "repo": "https://github.com/PatrickJS/awesome-cursorrules.git",
       "ref": "b044f956f021b6e8877f16781bcfc466a6a120e9",
       "license": "CC0-1.0",
-      "include": ["rules", "LICENSE", "README.md"],
+      "include": [
+        "rules",
+        "LICENSE",
+        "README.md"
+      ],
       "notes": "Community rule collection (public domain). Quality varies and some entries are stylistic preference rather than best practice - used to fill gaps awesome-copilot does not cover. Review a rule before adding a pack for it."
     },
     {

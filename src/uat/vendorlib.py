@@ -24,36 +24,158 @@ SOURCE_FILE = "SOURCE.json"
 
 @dataclass
 class Upstream:
+    """A vendored source: a pinned git repo, or a local directory.
+
+    Local sources exist because not everything worth vendoring lives in a
+    public git repository - house style guides, a company's internal rules,
+    or a skill you wrote yourself. They are snapshotted and content-hashed
+    exactly like git sources, so `vendor verify` protects them equally; they
+    simply have no commit to pin.
+    """
+
     id: str
-    repo: str
-    ref: str
     license: str
-    include: tuple[str, ...]
+    kind: str = "git"                 # "git" | "local"
+    repo: str = ""                    # git only
+    ref: str = ""                     # git only
+    path: str = ""                    # local only: where it was copied from
+    include: tuple[str, ...] = ()
     notes: str = ""
 
     @property
+    def is_local(self) -> bool:
+        return self.kind == "local"
+
+    @property
     def short_ref(self) -> str:
-        return self.ref[:7]
+        return "local" if self.is_local else self.ref[:7]
+
+    @property
+    def origin(self) -> str:
+        return self.path or "(snapshot only)" if self.is_local else self.repo
 
 
 def load_upstreams(toolkit_root: Path) -> list[Upstream]:
     data = read_json(toolkit_root / "catalog" / "vendor.json")
     out = []
     for item in data.get("upstreams", []):
-        for key in ("id", "repo", "ref", "license"):
+        kind = item.get("type", "git")
+        required = ("id", "license") if kind == "local" else ("id", "repo", "ref", "license")
+        for key in required:
             if key not in item:
                 raise ToolkitError(f"vendor.json entry missing '{key}': {item}")
+        if kind not in ("git", "local"):
+            raise ToolkitError(f"vendor.json entry {item['id']}: unknown type {kind!r}")
         out.append(
             Upstream(
                 id=item["id"],
-                repo=item["repo"],
-                ref=item["ref"],
                 license=item["license"],
+                kind=kind,
+                repo=item.get("repo", ""),
+                ref=item.get("ref", ""),
+                path=item.get("path", ""),
                 include=tuple(item.get("include") or ()),
                 notes=item.get("notes", ""),
             )
         )
     return out
+
+
+def register(toolkit_root: Path, entry: dict) -> None:
+    """Add or replace an entry in catalog/vendor.json, preserving the rest."""
+    path = toolkit_root / "catalog" / "vendor.json"
+    data = read_json(path)
+    ups = data.setdefault("upstreams", [])
+    for i, item in enumerate(ups):
+        if item.get("id") == entry["id"]:
+            ups[i] = entry
+            break
+    else:
+        ups.append(entry)
+    path.write_text(dumps_json(data), encoding="utf-8")
+
+
+def add_local(
+    toolkit_root: Path,
+    source: Path,
+    *,
+    vendor_id: str,
+    license: str,
+    notes: str = "",
+    include: tuple[str, ...] = (),
+    force: bool = False,
+) -> tuple[str, str]:
+    """Vendor a local directory: snapshot it, hash it, register it."""
+    source = source.expanduser().resolve()
+    if not source.is_dir():
+        raise ToolkitError(f"not a directory: {source}")
+    if not vendor_id.replace("-", "").replace("_", "").isalnum():
+        raise ToolkitError(f"vendor id must be alphanumeric/dash/underscore: {vendor_id!r}")
+
+    dest = toolkit_root / "vendor" / vendor_id
+    if dest.exists() and not force:
+        raise ToolkitError(
+            f"vendor/{vendor_id} already exists. Use --force to replace it."
+        )
+
+    with tempfile.TemporaryDirectory(prefix="uat-local-") as tmp:
+        staged = Path(tmp) / "staged"
+        staged.mkdir()
+        names = include or tuple(
+            p.name for p in source.iterdir() if p.name not in (".git", ".DS_Store")
+        )
+        for rel in names:
+            s_path = source / rel
+            if not s_path.exists():
+                raise ToolkitError(f"include path {rel!r} not found in {source}")
+            t = staged / rel
+            t.parent.mkdir(parents=True, exist_ok=True)
+            if s_path.is_dir():
+                shutil.copytree(s_path, t, ignore=shutil.ignore_patterns(".git", ".DS_Store"))
+            else:
+                shutil.copy2(s_path, t)
+
+        content_hash = sha256_tree(staged)
+        if dest.exists():
+            shutil.rmtree(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(staged, dest)
+
+    (dest / SOURCE_FILE).write_text(
+        dumps_json(
+            {
+                "id": vendor_id,
+                "type": "local",
+                "path": str(source),
+                "license": license,
+                "include": list(names),
+                "content_sha256": content_hash,
+                "fetched_at": _dt.datetime.now(_dt.timezone.utc)
+                .replace(microsecond=0)
+                .isoformat(),
+                "notes": notes,
+                "_policy": (
+                    "Local snapshot. Committed to this repository and verified by "
+                    "content hash. Edit the ORIGINAL and re-run `uat vendor sync`, "
+                    "not this copy."
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    register(
+        toolkit_root,
+        {
+            "id": vendor_id,
+            "type": "local",
+            "path": str(source),
+            "license": license,
+            "include": list(names),
+            "notes": notes or f"Local content vendored from {source}",
+        },
+    )
+    return vendor_id, f"{content_hash[:12]} ({len(names)} top-level item(s))"
 
 
 def _run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
@@ -104,6 +226,19 @@ def _fetch(up: Upstream, workdir: Path) -> Path:
 def sync_one(up: Upstream, toolkit_root: Path, *, force: bool = False) -> tuple[str, str]:
     """Fetch and store one upstream. Returns (status, detail)."""
     dest = toolkit_root / "vendor" / up.id
+
+    if up.is_local:
+        src = Path(up.path).expanduser() if up.path else None
+        if src and src.is_dir():
+            _id, detail = add_local(
+                toolkit_root, src, vendor_id=up.id, license=up.license,
+                notes=up.notes, include=up.include, force=True,
+            )
+            return "synced", detail
+        ok, detail = verify_one(up, toolkit_root)
+        if ok:
+            return "unchanged", "local snapshot (source not on this machine)"
+        return "drifted", detail
     existing = read_json(dest / SOURCE_FILE, default={})
     if existing.get("ref") == up.ref and not force:
         ok, detail = verify_one(up, toolkit_root)
@@ -172,7 +307,11 @@ def verify_one(up: Upstream, toolkit_root: Path) -> tuple[bool, str]:
     meta = read_json(dest / SOURCE_FILE, default={})
     if not meta:
         return False, f"missing {SOURCE_FILE}"
-    if meta.get("ref") != up.ref:
+    if up.is_local:
+        recorded = meta.get("content_sha256")
+        if not recorded:
+            return False, "snapshot has no content hash"
+    elif meta.get("ref") != up.ref:
         return False, (
             f"pinned {up.short_ref} but snapshot is {str(meta.get('ref'))[:7]}"
         )
@@ -191,7 +330,8 @@ def verify_one(up: Upstream, toolkit_root: Path) -> tuple[bool, str]:
 
     if actual != recorded:
         return False, "content modified since fetch (edited vendor snapshot?)"
-    return True, f"{up.short_ref} verified"
+    return True, ("local snapshot verified" if up.is_local
+                  else f"{up.short_ref} verified")
 
 
 def vendored_ids(toolkit_root: Path) -> list[str]:
