@@ -24,6 +24,54 @@ This repository separates two jobs:
 2. **A narrow install, per project** — detect the stack, copy only what that
    project needs, generate only the surfaces that one agent reads.
 
+## Where does this repository live?
+
+**Not inside your project.** This repo is the *factory* — `bin/ src/ catalog/
+vendor/` are build material, not something you copy into an app. Keep it once,
+anywhere:
+
+```bash
+git clone <this repo> ~/tools/universal-agent-toolkit
+~/tools/universal-agent-toolkit/bin/uat install --project ~/code/my-app --agent claude-code
+```
+
+Your project receives one folder and its agent files. Nothing else.
+
+### If you want the project to be fully self-contained
+
+Add `--embed`. The toolkit copies *itself* inside the folder it already owns,
+so the project can manage its own configuration with no external checkout:
+
+```bash
+uat install --project ~/code/my-app --agent claude-code --embed
+```
+
+```
+my-app/.agent-toolkit/toolkit/     <- the CLI + catalog, ~380 KB
+my-app/.agent-toolkit/toolkit/uat  <- run it from the project
+```
+
+```bash
+cd ~/code/my-app
+.agent-toolkit/toolkit/uat status  --project .
+.agent-toolkit/toolkit/uat install --project . --agent claude-code --add go
+```
+
+| Mode | Adds | Adding a new pack later |
+|---|---|---|
+| default (external) | 0 | needs the toolkit checkout |
+| `--embed` | ~380 KB | needs network (`uat vendor sync`) |
+| `--embed --with-vendor` | ~8.2 MB | works fully offline, forever |
+
+Either way the project root only ever gains `.agent-toolkit/` plus the files
+your chosen agent reads. Embedding never adds a top-level folder.
+
+You can also embed later, into an already-configured project:
+
+```bash
+uat embed --project ~/code/my-app --with-vendor
+```
+
 ## Quick start
 
 ```bash
@@ -59,7 +107,8 @@ my-app/
 │   ├── deploy/  docker/     provisioning and local-dev templates
 │   ├── reports/             one report per completed phase
 │   ├── project.json         mode, agents, detected stack
-│   └── installed.json       lockfile with content hashes
+│   ├── installed.json       lockfile with content hashes
+│   └── toolkit/             the toolkit itself (only with --embed)
 ├── CLAUDE.md                <- a pointer, ~600 bytes
 ├── .claude/skills -> ../.agent-toolkit/skills
 └── .mcp.json

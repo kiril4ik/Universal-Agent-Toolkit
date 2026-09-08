@@ -88,3 +88,30 @@ otherwise a user's edit would silently become the new baseline and
 Vendored skills are executable instructions, so they are treated like code
 dependencies: pinned to a commit, hashed, reviewed on update, and never
 fetched during ordinary project work.
+
+## Embedding
+
+The toolkit repository is a factory: `bin/`, `src/`, `catalog/`, `vendor/`,
+`tests/`, `docs/`. None of it belongs in a target project's root.
+
+`uat install --embed` copies the parts a project could need — `src/`,
+`catalog/`, a launcher, optionally `vendor/` — into
+`<project>/.agent-toolkit/toolkit/`. Factory-only directories (`bin`, `tests`,
+`docs`, `.git`) are never embedded.
+
+This works because `cli.TOOLKIT_ROOT` is derived from `__file__`:
+`src/uat/cli.py` -> `parents[2]`. In the embedded layout that resolves to
+`.agent-toolkit/toolkit/`, so an embedded copy reads its own catalog and its
+own vendor snapshots with no special casing. A test asserts that resolution.
+
+Two depths:
+
+- **slim** (default, ~380 KB) — CLI and catalog. Everything already installed
+  works offline; installing a *new* pack needs `uat vendor sync` and network,
+  because the upstream bytes are not present.
+- **`--with-vendor`** (~8.2 MB) — every pinned snapshot too, so a new pack can
+  be installed with no network at all.
+
+`EMBEDDED.json` marks the copy and records which depth was used. `uat doctor`
+reads it and reports missing vendor snapshots as an expected condition rather
+than a failure, so a slim embed is healthy rather than broken.

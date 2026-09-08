@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import embed as embedlib
 from . import install as inst
 from . import vendorlib
 from .catalog import Catalog, TIERS
@@ -273,11 +274,53 @@ def cmd_install(args) -> int:
         for n in dict.fromkeys(result.notes):
             print(f"  - {n}")
 
+    if args.embed:
+        print()
+        _do_embed(project, with_vendor=args.with_vendor, force=args.force,
+                  verbose=args.verbose)
+
     print()
     print(green(bold("Installed.")) + " Next:")
     print(f"  1. read  {project}/.agent-toolkit/CORE.md")
     print(f"  2. start planning: point your agent at .agent-toolkit/workflow/README.md")
     return 0 if result.ok else 2
+
+
+def _do_embed(project: Path, *, with_vendor: bool, force: bool, verbose: bool) -> None:
+    """Copy the toolkit into the project's .agent-toolkit/toolkit/."""
+    size = embedlib.estimate_size(TOOLKIT_ROOT, with_vendor=with_vendor)
+    print(bold("Embedding the toolkit into the project"))
+    print(f"  destination  .agent-toolkit/toolkit/")
+    print(f"  vendored     {'yes - fully offline' if with_vendor else 'no'}")
+    print(f"  adds         ~{embedlib.human(size)}")
+
+    report = Report()
+    dest = embedlib.embed(
+        TOOLKIT_ROOT, project, with_vendor=with_vendor, force=force, report=report
+    )
+    if verbose:
+        rendered = report.render(project, verbose=False)
+        if rendered:
+            print(rendered)
+    print(f"  {report.summary()}")
+    print()
+    print("  this project can now manage itself:")
+    print(cyan("    .agent-toolkit/toolkit/uat status --project ."))
+    if not with_vendor:
+        print(dim("  note: adding a NEW pack later needs `uat vendor sync` and network."))
+        print(dim("        use --with-vendor to embed every upstream for offline use."))
+
+
+def cmd_embed(args) -> int:
+    project = _project(args)
+    if not (project / inst.TOOLKIT_DIR).is_dir():
+        raise ToolkitError(
+            f"{project} has no .agent-toolkit/ yet. Run `uat install` first, "
+            "or use `uat install --embed`."
+        )
+    _do_embed(project, with_vendor=args.with_vendor, force=args.force,
+              verbose=args.verbose)
+    return 0
 
 
 def cmd_status(args) -> int:
@@ -378,21 +421,30 @@ def cmd_doctor(args) -> int:
         print(f"  {red('FAIL')}  {exc}")
         return 1
 
+    slim = embedlib.is_embedded(TOOLKIT_ROOT) and not (TOOLKIT_ROOT / "vendor").exists()
     ups = vendorlib.load_upstreams(TOOLKIT_ROOT)
-    for up in ups:
-        ok, detail = vendorlib.verify_one(up, TOOLKIT_ROOT)
-        print(f"  {green('ok') if ok else red('FAIL')}  vendor {up.id}: {detail}")
-        if not ok:
-            problems.append(f"vendor {up.id}: {detail}")
+    if slim:
+        info = embedlib.embed_info(TOOLKIT_ROOT)
+        print(f"  {yellow('--')}  embedded copy v{info.get('toolkit_version', '?')} "
+              f"without vendored upstreams")
+        print(dim(f"      {len(ups)} upstream(s) not present; already-installed packs "
+                  f"work offline, adding new ones needs `uat vendor sync`"))
+    else:
+        for up in ups:
+            ok, detail = vendorlib.verify_one(up, TOOLKIT_ROOT)
+            print(f"  {green('ok') if ok else red('FAIL')}  vendor {up.id}: {detail}")
+            if not ok:
+                problems.append(f"vendor {up.id}: {detail}")
 
     # every vendor_map target must exist
-    for pack in catalog:
-        for vm in pack.vendor_maps:
-            for rel in vm.required_paths():
-                if not (TOOLKIT_ROOT / "vendor" / vm.vendor / rel).exists():
-                    problems.append(
-                        f"pack {pack.id} -> missing vendor path {vm.vendor}/{rel}"
-                    )
+    if not slim:
+        for pack in catalog:
+            for vm in pack.vendor_maps:
+                for rel in vm.required_paths():
+                    if not (TOOLKIT_ROOT / "vendor" / vm.vendor / rel).exists():
+                        problems.append(
+                            f"pack {pack.id} -> missing vendor path {vm.vendor}/{rel}"
+                        )
 
     for name in ("catalog/core", "catalog/workflow"):
         if not (TOOLKIT_ROOT / name).exists():
@@ -447,6 +499,11 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--force", action="store_true", help="replace conflicting files")
     i.add_argument("--dry-run", action="store_true", help="show what would change")
     i.add_argument("--copy", action="store_true", help="copy skills instead of symlinking")
+    i.add_argument("--embed", action="store_true",
+                   help="also copy the toolkit into .agent-toolkit/toolkit/ so the "
+                        "project can manage itself without this checkout")
+    i.add_argument("--with-vendor", action="store_true",
+                   help="with --embed, include every vendored upstream (fully offline, larger)")
     i.set_defaults(func=cmd_install)
 
     s = sub.add_parser("status", help="show install state and local drift")
@@ -469,6 +526,14 @@ def build_parser() -> argparse.ArgumentParser:
     vy.add_argument("--only", nargs="*", metavar="ID")
     vy.add_argument("--force", action="store_true", help="re-fetch even if unchanged")
     vy.set_defaults(func=cmd_vendor)
+
+    e = sub.add_parser("embed",
+                       help="copy the toolkit into an already-configured project")
+    e.add_argument("--project", default=".")
+    e.add_argument("--with-vendor", action="store_true",
+                   help="include every vendored upstream (fully offline, larger)")
+    e.add_argument("--force", action="store_true")
+    e.set_defaults(func=cmd_embed)
 
     doc = sub.add_parser("doctor", help="self-check the toolkit repository")
     doc.set_defaults(func=cmd_doctor)

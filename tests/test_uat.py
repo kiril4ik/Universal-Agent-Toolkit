@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from uat import embed as embedlib          # noqa: E402
 from uat import install as inst          # noqa: E402
 from uat import vendorlib                 # noqa: E402
 from uat.catalog import Catalog           # noqa: E402
@@ -406,6 +407,69 @@ class TestRenderedContext(TempProject):
 
 
 # ----------------------------------------------------------------------
+class TestEmbedding(TempProject):
+    """Embedding must keep the project self-contained without adding folders."""
+
+    def embed(self, with_vendor=False):
+        self.install(["claude-code"])
+        return embedlib.embed(
+            ROOT, self.project, with_vendor=with_vendor, force=False, report=Report()
+        )
+
+    def test_embeds_inside_the_single_folder(self):
+        self.embed()
+        self.assertTrue((self.project / ".agent-toolkit/toolkit/uat").is_file())
+        # no new top-level directory appeared
+        top = {p.name for p in self.project.iterdir()}
+        self.assertTrue(top.issubset({".agent-toolkit", ".claude", ".mcp.json", "CLAUDE.md"}))
+
+    def test_embedded_launcher_is_executable(self):
+        dest = self.embed()
+        self.assertTrue(os.access(dest / "uat", os.X_OK))
+
+    def test_factory_only_directories_are_not_embedded(self):
+        dest = self.embed()
+        for skipped in ("tests", "docs", "bin", ".git"):
+            self.assertFalse((dest / skipped).exists(), f"{skipped} should not embed")
+
+    def test_slim_embed_omits_vendor(self):
+        dest = self.embed(with_vendor=False)
+        self.assertFalse((dest / "vendor").exists())
+        self.assertTrue((dest / "catalog").is_dir())
+        info = embedlib.embed_info(dest)
+        self.assertFalse(info["with_vendor"])
+
+    def test_full_embed_includes_vendor(self):
+        dest = self.embed(with_vendor=True)
+        self.assertTrue((dest / "vendor/superpowers/skills/brainstorming/SKILL.md").is_file())
+        self.assertTrue(embedlib.embed_info(dest)["with_vendor"])
+
+    def test_embedded_copy_resolves_its_own_root(self):
+        """cli.TOOLKIT_ROOT must point at the embedded copy, not the factory."""
+        dest = self.embed()
+        cli_path = dest / "src/uat/cli.py"
+        self.assertTrue(cli_path.is_file())
+        self.assertEqual(cli_path.resolve().parents[2], dest.resolve())
+
+    def test_embedded_copy_can_install_from_itself(self):
+        dest = self.embed(with_vendor=True)
+        registry = Registry.load(dest)
+        catalog = Catalog.load(dest)
+        plan = inst.build_plan(
+            dest, self.project, registry=registry, catalog=catalog,
+            agent_keys=["claude-code"], mode="focused", explicit_packs=["go"],
+        )
+        inst.execute(plan, dest)
+        rule = self.project / ".agent-toolkit/rules/GO.md"
+        self.assertTrue(rule.is_file())
+        self.assertGreater(len(rule.read_text()), 5000)
+
+    def test_is_embedded_marker(self):
+        dest = self.embed()
+        self.assertTrue(embedlib.is_embedded(dest))
+        self.assertFalse(embedlib.is_embedded(ROOT))
+
+
 class TestWorkflowShipped(TempProject):
     def test_workflow_phases_are_installed(self):
         self.install(["claude-code"])
