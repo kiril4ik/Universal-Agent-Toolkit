@@ -529,6 +529,103 @@ class TestVendorReachability(unittest.TestCase):
         self.assertEqual(orphans, {}, f"vendored but no pack installs it: {orphans}")
 
 
+class TestVerifiedAgentSpecs(unittest.TestCase):
+    """Specs checked against each tool's own docs. Values, not vibes.
+
+    Each assertion below corresponds to something read from official
+    documentation; see the `notes` field of the agent in catalog/agents.json.
+    """
+
+    def setUp(self):
+        self.registry = Registry.load(ROOT)
+
+    def test_vscode_uses_servers_not_mcpservers(self):
+        a = self.registry.get("copilot")
+        self.assertEqual(a.mcp["path"], ".vscode/mcp.json")
+        self.assertEqual(a.mcp["key"], "servers")
+
+    def test_gemini_project_settings_and_key(self):
+        a = self.registry.get("gemini-cli")
+        self.assertEqual(a.mcp["path"], ".gemini/settings.json")
+        self.assertEqual(a.mcp["key"], "mcpServers")
+        self.assertEqual(a.instruction_path, "GEMINI.md")
+
+    def test_cline_uses_the_directory_form(self):
+        a = self.registry.get("cline")
+        self.assertTrue(a.instruction_path.startswith(".clinerules/"))
+
+    def test_roo_uses_the_directory_form(self):
+        a = self.registry.get("roo")
+        self.assertTrue(a.instruction_path.startswith(".roo/rules/"))
+
+    def test_opencode_mcp_shape_matches_the_docs(self):
+        spec = ServerSpec.from_json(
+            ROOT / "catalog/packs/mcp-context7/files/mcp/context7.json")
+        entry = shape_entry(spec, "opencode")
+        self.assertEqual(entry["type"], "local")
+        self.assertIsInstance(entry["command"], list)
+        self.assertTrue(entry["enabled"])
+
+    def test_opencode_remote_shape_matches_the_docs(self):
+        spec = ServerSpec.from_json(
+            ROOT / "catalog/packs/mcp-figma/files/mcp/figma.json")
+        entry = shape_entry(spec, "opencode")
+        self.assertEqual(entry["type"], "remote")
+        self.assertIn("url", entry)
+
+    def test_zed_writes_dot_rules(self):
+        """.rules is first in Zed's precedence list, ahead of AGENTS.md."""
+        self.assertEqual(self.registry.get("zed").instruction_path, ".rules")
+
+    def test_junie_uses_agents_md_not_the_legacy_path(self):
+        a = self.registry.get("junie")
+        self.assertEqual(a.instruction_path, "AGENTS.md")
+        self.assertNotIn(".junie/guidelines.md", a.owned_paths())
+
+    def test_amp_uses_agents_md(self):
+        self.assertEqual(self.registry.get("amp").instruction_path, "AGENTS.md")
+
+    def test_aider_gets_a_loader_config(self):
+        """CONVENTIONS.md is inert without a read: entry."""
+        a = self.registry.get("aider")
+        self.assertEqual(a.surfaces["config"]["path"], ".aider.conf.yml")
+        self.assertIn(".aider.conf.yml", a.owned_paths())
+
+    def test_legacy_paths_are_justified_in_notes(self):
+        """A medium-confidence agent must explain why, not just be unverified."""
+        for a in self.registry:
+            if a.confidence == "medium":
+                self.assertTrue(
+                    len(a.notes) > 80,
+                    f"{a.id} is medium confidence with no explanation",
+                )
+
+    def test_no_agent_is_low_confidence_anymore(self):
+        low = [a.id for a in self.registry if a.confidence == "low"]
+        self.assertEqual(low, [], f"unverified agent specs remain: {low}")
+
+
+class TestAiderLoaderConfig(TempProject):
+    def test_conventions_file_is_actually_wired_up(self):
+        self.install(["aider"])
+        conf = self.project / ".aider.conf.yml"
+        self.assertTrue(conf.is_file())
+        self.assertIn("read: CONVENTIONS.md", conf.read_text())
+
+    def test_existing_config_is_not_clobbered(self):
+        self.write(".aider.conf.yml", "model: gpt-4\n")
+        result = self.install(["aider"])
+        self.assertEqual((self.project / ".aider.conf.yml").read_text(),
+                         "model: gpt-4\n")
+        self.assertTrue(any("aider" in n.lower() for n in result.notes),
+                        "user was not told to add the read: line themselves")
+
+    def test_uninstall_removes_it(self):
+        self.install(["aider"])
+        inst.uninstall(self.project, self.registry, report=Report())
+        self.assertFalse((self.project / ".aider.conf.yml").exists())
+
+
 class TestLocalVendoring(unittest.TestCase):
     """Not everything worth vendoring lives in a public git repo."""
 

@@ -81,6 +81,9 @@ class Agent:
         hooks = self.surfaces.get("hooks") or {}
         if hooks.get("scope") == "project" and hooks.get("path"):
             out.append(hooks["path"])
+        config = self.surfaces.get("config") or {}
+        if config.get("path"):
+            out.append(config["path"])
         return out
 
     @property

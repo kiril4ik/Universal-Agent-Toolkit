@@ -200,6 +200,49 @@ def _install_pack_files(
                 copy_file(f, dest / rel, force=force, report=report)
 
 
+def write_agent_config(
+    agent: Agent, project: Path, *, force: bool, report: Report
+) -> str | None:
+    """Write a tool config that makes the instruction file actually load.
+
+    Some tools do not read their conventions file automatically. Aider is the
+    clear case: CONVENTIONS.md is only a naming convention, and without a
+    `read:` entry in .aider.conf.yml the file we generate is inert. Writing an
+    instruction file a tool never loads is worse than writing nothing, because
+    it looks configured.
+    """
+    cfg = agent.surfaces.get("config") or {}
+    if cfg.get("kind") != "aider-read":
+        return None
+
+    path = project / cfg["path"]
+    target = agent.instruction_path or "CONVENTIONS.md"
+    line = f"{cfg.get('key', 'read')}: {target}"
+    # The TOOLKIT_DIR reference is load-bearing, not decorative: uninstall
+    # identifies its own files by looking for it, so a generated file without
+    # it would be orphaned on removal.
+    body = (
+        f"# Written by the Universal Agent Toolkit ({TOOLKIT_DIR}/).\n"
+        f"# Aider does not read {target} on its own - this entry makes it load.\n"
+        f"{line}\n"
+    )
+
+    if path.exists():
+        existing = path.read_text(encoding="utf-8", errors="replace")
+        if target in existing:
+            report.record(SAME, path)
+            return None
+        # Merging YAML without a YAML parser is how configs get corrupted.
+        report.record(
+            CONFLICT, path,
+            f"exists; add `{line}` yourself so {target} is loaded",
+        )
+        return f"{agent.name}: add `{line}` to {cfg['path']} - without it {target} is never read."
+
+    write_text(path, body, force=force, report=report)
+    return None
+
+
 def write_agent_hooks(
     agent: Agent, project: Path, *, enabled: bool, force: bool, report: Report
 ) -> bool:
@@ -407,6 +450,11 @@ def execute(
                 f"{agent.surfaces['hooks']['path']}. Your tool will ask you to "
                 "approve it the first time - that prompt is expected."
             )
+
+        # loader config, for tools that do not read their file automatically
+        note = write_agent_config(agent, project, force=force, report=report)
+        if note:
+            result.notes.append(note)
 
         # mcp
         write_agent_mcp(agent, project, specs, force=force, report=report)

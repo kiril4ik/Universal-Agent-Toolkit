@@ -117,7 +117,7 @@
         "vscode",
         "github-copilot"
       ],
-      "confidence": "medium",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "root-pointer",
@@ -134,7 +134,7 @@
           "shape": "standard"
         }
       },
-      "notes": "VS Code uses the key 'servers', not 'mcpServers'. Path-scoped rules also exist as .github/instructions/*.instructions.md with an applyTo frontmatter key."
+      "notes": "Verified against VS Code docs. MCP uses the key 'servers' (not mcpServers) in .vscode/mcp.json; 'type' is required for remote HTTP servers only. VS Code also reads AGENTS.md and CLAUDE.md, plus .github/instructions/*.instructions.md with an applyTo glob."
     },
     {
       "id": "gemini-cli",
@@ -142,7 +142,7 @@
       "aliases": [
         "gemini"
       ],
-      "confidence": "medium",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "root-pointer",
@@ -159,7 +159,7 @@
           "shape": "standard"
         }
       },
-      "notes": "settings.json holds more than MCP; installer merges only the mcpServers key and preserves the rest."
+      "notes": "Verified against the gemini-cli source docs: project settings at ./.gemini/settings.json, MCP under the top-level mcpServers key, context file GEMINI.md."
     },
     {
       "id": "windsurf",
@@ -185,13 +185,13 @@
           "shape": "standard"
         }
       },
-      "notes": "Rules directory is project-local; MCP config is global."
+      "notes": "Windsurf is now Devin. Current docs prefer .devin/rules/*.md, but .windsurf/rules/*.md is still read for backward compatibility - which is why it is used here: it works on both old and new versions. The legacy .windsurfrules file is also still read, and AGENTS.md is fully supported. Switch the path to .devin/rules if you only target current versions."
     },
     {
       "id": "cline",
       "name": "Cline",
       "aliases": [],
-      "confidence": "medium",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "dir-rules-md",
@@ -209,7 +209,7 @@
           "shape": "standard"
         }
       },
-      "notes": ".clinerules may be a single file or a directory; the directory form is used here."
+      "notes": "Verified: workspace rules live in the .clinerules/ DIRECTORY (all .md/.txt files are combined). Cline also reads AGENTS.md. MCP is stored in extension state, not the project, so it is left to manual setup."
     },
     {
       "id": "roo",
@@ -217,7 +217,7 @@
       "aliases": [
         "roo-code"
       ],
-      "confidence": "medium",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "dir-rules-md",
@@ -235,7 +235,7 @@
           "shape": "standard"
         }
       },
-      "notes": "Fork lineage of Cline with project-scoped MCP support."
+      "notes": "Verified: .roo/rules/ is the primary directory form (.roorules is the legacy fallback); files are read recursively in alphabetical order. Roo also auto-loads AGENTS.md unless roo-cline.useAgentRules is false. The .roo/mcp.json path is not covered by the rules documentation - verify before relying on it."
     },
     {
       "id": "junie",
@@ -243,11 +243,11 @@
       "aliases": [
         "jetbrains"
       ],
-      "confidence": "low",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "root-pointer",
-          "path": ".junie/guidelines.md"
+          "path": "AGENTS.md"
         },
         "skills": {
           "path": null,
@@ -260,13 +260,13 @@
           "shape": "ide"
         }
       },
-      "notes": "MCP is configured through the IDE UI. Verify the guidelines path against your Junie version."
+      "notes": "CORRECTED: Junie now reads AGENTS.md from the project root as the primary guidelines file; .junie/guidelines.md is the legacy format (still supported). Junie also combines .junie/playbook.md and .junie/rules/*.md when present. MCP is configured through the IDE, not a project file."
     },
     {
       "id": "opencode",
       "name": "OpenCode",
       "aliases": [],
-      "confidence": "medium",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "root-pointer",
@@ -283,13 +283,13 @@
           "shape": "opencode"
         }
       },
-      "notes": "MCP entry shape differs: {type:'local', command:[bin, ...args], enabled:true}."
+      "notes": "Verified against opencode.ai docs: AGENTS.md at the project root, config in opencode.json under the top-level 'mcp' key. Local servers take {type:'local', command:[bin, ...args], enabled:true}; remote take {type:'remote', url, enabled:true}."
     },
     {
       "id": "aider",
       "name": "Aider",
       "aliases": [],
-      "confidence": "medium",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "root-pointer",
@@ -304,9 +304,14 @@
           "path": null,
           "key": null,
           "shape": null
+        },
+        "config": {
+          "path": ".aider.conf.yml",
+          "kind": "aider-read",
+          "key": "read"
         }
       },
-      "notes": "Conventions file is passed with --read CONVENTIONS.md; no MCP support."
+      "notes": "CORRECTED: CONVENTIONS.md is only a naming convention - Aider does NOT read it automatically. It must be loaded with `aider --read CONVENTIONS.md` or a `read:` entry in .aider.conf.yml, which the installer now writes. Aider does not auto-read AGENTS.md either, and has no MCP support."
     },
     {
       "id": "amp",
@@ -314,7 +319,7 @@
       "aliases": [
         "sourcegraph-amp"
       ],
-      "confidence": "low",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "root-pointer",
@@ -331,13 +336,13 @@
           "shape": "ide"
         }
       },
-      "notes": "Consumes AGENTS.md. Verify MCP configuration location for your version."
+      "notes": "Verified: Amp reads AGENTS.md (and AGENT.md) from the nearest directory upward, so the project root file applies everywhere. MCP is configured outside the project."
     },
     {
       "id": "zed",
       "name": "Zed",
       "aliases": [],
-      "confidence": "low",
+      "confidence": "high",
       "surfaces": {
         "instructions": {
           "style": "root-pointer",
@@ -354,7 +359,7 @@
           "shape": "zed"
         }
       },
-      "notes": "Zed calls MCP servers 'context servers'."
+      "notes": "Verified against Zed docs: .rules is checked FIRST in its precedence list, ahead of AGENTS.md and CLAUDE.md, so writing .rules reliably wins. MCP servers are called 'context servers' and are configured outside the project."
     },
     {
       "id": "kilocode",
@@ -362,7 +367,7 @@
       "aliases": [
         "kilo"
       ],
-      "confidence": "low",
+      "confidence": "medium",
       "surfaces": {
         "instructions": {
           "style": "dir-rules-md",
@@ -380,7 +385,7 @@
           "shape": "standard"
         }
       },
-      "notes": "Roo/Cline lineage."
+      "notes": "Kilo now prefers .kilo/rules/ configured via kilo.jsonc, but .kilocode/rules/ remains supported for backward compatibility and is used here so the same file works across versions. Verify .kilocode/mcp.json against your version."
     }
   ]
 }
