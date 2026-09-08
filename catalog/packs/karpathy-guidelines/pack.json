@@ -1,0 +1,17 @@
+{
+  "id": "karpathy-guidelines",
+  "title": "Karpathy guidelines",
+  "tier": "core",
+  "tags": [
+    "process"
+  ],
+  "detect": [],
+  "summary": "Guardrails against LLM overcomplication: surgical changes, surfaced assumptions, verifiable success criteria.",
+  "vendor_maps": [
+    {
+      "vendor": "karpathy-guidelines",
+      "src": "codex/karpathy-guidelines",
+      "dest": "skills/karpathy-guidelines"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "ui-ux-pro-max",
+  "title": "UI/UX Pro Max",
+  "tier": "optional",
+  "tags": [
+    "frontend",
+    "design"
+  ],
+  "detect": [
+    "frontend"
+  ],
+  "summary": "Design intelligence: 50+ styles, 161 colour palettes, 57 font pairings, UX guidelines and product-type patterns.",
+  "vendor_maps": [
+    {
+      "vendor": "ui-ux-pro-max",
+      "src": ".claude/skills/ui-ux-pro-max",
+      "dest": "skills/ui-ux-pro-max",
+      "exclude": [
+        "scripts/tests",
+        "scripts/__pycache__"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "vercel-agent-skills",
+  "repo": "https://github.com/vercel-labs/agent-skills.git",
+  "ref": "063bee94c3f4df8453406c830b0a7df0f2860278",
+  "license": "MIT (stated in README; repository has no LICENSE file)",
+  "include": [
+    "skills/react-best-practices",
+    "skills/composition-patterns",
+    "skills/react-view-transitions",
+    "skills/web-design-guidelines",
+    "skills/writing-guidelines",
+    "README.md"
+  ],
+  "content_sha256": "c21f6dc68f08fa27ab9dc0052c1128946742f604536e2541dda31303db10a920",
+  "fetched_at": "2026-09-08T11:38:42+00:00",
+  "notes": "React and Next.js best practices from Vercel Labs. Deployment-specific skills are deliberately excluded.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}

@@ -1,0 +1,17 @@
+{
+  "name": "nextjs",
+  "description": "Next.js + React + Tailwind + TypeScript application.",
+  "extends": [
+    "frontend"
+  ],
+  "packs": [
+    "nextjs",
+    "react-best-practices",
+    "react-composition",
+    "tailwind",
+    "docker",
+    "playwright",
+    "deploy-ubuntu",
+    "docker-local"
+  ]
+}

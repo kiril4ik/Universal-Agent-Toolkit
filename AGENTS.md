@@ -1,38 +1,67 @@
-# Universal Agent Toolkit — Agent Instructions
+# Universal Agent Toolkit — instructions for agents working on this repository
 
-This repository is a reusable **toolkit builder**, not an application project.
+This repository is a **toolkit that configures other projects**. It is not an
+application. Changes here affect every project the toolkit is installed into.
 
-## Primary objective
-
-Maintain a high-quality, pinned, repository-local library of AI coding resources and safely copy only relevant resources into target projects.
-
-## Before changing this repository
+## Before changing anything
 
 1. Read `README.md` and `docs/ARCHITECTURE.md`.
-2. Treat `vendor/` as upstream snapshots. Do not casually rewrite vendored content.
-3. Put our policy in `toolkit/core/` or `toolkit/packs/`, not inside vendor snapshots.
-4. Keep `scripts/preinstall.sh` and `scripts/preinstall.py` idempotent.
-5. Never overwrite target-project files by default.
-6. Never install globally.
+2. Run `./bin/uat doctor` and `./bin/uat-test` so you know the starting state.
 
-## Project interaction mode
+## The rules that matter most
 
-When bootstrapping a target software project, the first workflow choice is:
+**`vendor/` is never edited.** Those are verbatim upstream snapshots, verified
+by content hash. If an upstream is wrong, add an overlay in `catalog/packs/`
+or record our own policy in `catalog/core/`. Editing a snapshot makes
+`uat vendor verify` fail, which is the point.
 
-1. Thorough
-2. Focused (default)
-3. Autonomous
+**Never fabricate provenance.** If `SOURCE.json` says a file came from a
+commit, it must have been fetched from that commit. Do not write content from
+memory and label it as vendored. This is the specific failure the rewrite of
+this repository existed to correct.
 
-The choice controls clarifying-question behavior. It never weakens destructive-operation safety gates.
+**Tool-specific knowledge belongs in `catalog/agents.json`**, not in code. If
+a tool changes its config format, that is a data edit.
 
-## Safety
+**Adapters are pointers.** Generated tool files route to
+`.agent-toolkit/CORE.md`. Never inline rule bodies into an always-loaded file
+— that is context bloat in every project, forever.
 
-Read `toolkit/core/DATA_SAFETY.md` before database, Docker, deployment, migration, restore/import, or server changes.
+**The installer never overwrites without `--force`.** Anything that changes a
+target project must go through `util.write_text` / `copy_file` so `--dry-run`
+and conflict reporting keep working.
 
-## Git
+## Layout
 
-Read `toolkit/core/GIT.md`. Commits must be atomic/coherent and must not add AI attribution or `Co-authored-by` trailers unless explicitly requested by the human.
+```
+bin/uat            launcher (bash -> python3, no install step)
+src/uat/           implementation, standard library only
+catalog/
+  agents.json      agent surface registry  <- tool formats live here
+  vendor.json      upstream pins
+  core/            our always-on policy (safety, git, verification, modes)
+  workflow/        the project planning workflow
+  packs/<id>/      installable units
+  profiles/        named pack bundles
+vendor/<id>/       verbatim snapshots + SOURCE.json
+tests/             the test suite
+```
 
 ## Verification
 
-Before claiming toolkit work is complete, run `./scripts/verify-toolkit.sh`.
+Before claiming any change here is complete:
+
+```bash
+./bin/uat-test        # 50 tests
+./bin/uat doctor      # catalog + registry + vendor integrity
+./bin/uat install --project /tmp/probe --agent claude-code --yes --dry-run
+```
+
+Bash in `catalog/packs/deploy-ubuntu/` must pass `bash -n`, and ideally be
+exercised in an `ubuntu:24.04` container before you claim it works.
+
+## Git
+
+Atomic commits, conventional messages, and **no AI attribution** — no
+`Co-authored-by`, `Generated-by`, or model names, unless explicitly asked.
+See `catalog/core/GIT.md`.

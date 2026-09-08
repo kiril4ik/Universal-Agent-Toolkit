@@ -1,0 +1,191 @@
+{
+  "$comment": [
+    "Agent surface registry. This is the ONLY place tool-specific paths/formats live.",
+    "If a tool changes its format, edit this file - never the installer code.",
+    "confidence: high = verified against the tool's own docs//behaviour at time of writing;",
+    "            medium = widely documented but not re-verified; low = best-effort, please confirm.",
+    "surfaces.instructions.style:",
+    "  root-pointer   -> a small markdown file at repo root pointing at .agent-toolkit/CORE.md",
+    "  dir-rules-md   -> one .md file inside a rules directory",
+    "  dir-rules-mdc  -> one .mdc file (YAML frontmatter) inside a rules directory",
+    "surfaces.skills.mode: link = symlink to .agent-toolkit/skills (no duplication), null = unsupported",
+    "surfaces.mcp.scope: project = we can write it, global = user must configure manually (we emit instructions)"
+  ],
+  "version": 1,
+  "shared_files": {
+    "AGENTS.md": "Written once when any agent that consumes it is selected."
+  },
+  "agents": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "aliases": ["claude", "claude-cli"],
+      "confidence": "high",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": "CLAUDE.md" },
+        "skills": { "path": ".claude/skills", "mode": "link" },
+        "commands": { "path": ".claude/commands", "ext": ".md" },
+        "subagents": { "path": ".claude/agents", "ext": ".md" },
+        "mcp": { "scope": "project", "path": ".mcp.json", "key": "mcpServers", "shape": "standard" }
+      },
+      "notes": "Only agent with native progressive-disclosure skills, slash commands and subagents."
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "aliases": [],
+      "confidence": "high",
+      "surfaces": {
+        "instructions": { "style": "dir-rules-mdc", "path": ".cursor/rules", "filename": "00-agent-toolkit.mdc" },
+        "also_writes": ["AGENTS.md"],
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "project", "path": ".cursor/mcp.json", "key": "mcpServers", "shape": "standard" }
+      },
+      "notes": "MDC frontmatter supports description/globs/alwaysApply. Glob-scoped rules are the closest thing to skills outside Claude Code."
+    },
+    {
+      "id": "codex",
+      "name": "OpenAI Codex CLI",
+      "aliases": ["openai-codex"],
+      "confidence": "high",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": "AGENTS.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "global", "path": "~/.codex/config.toml", "key": "mcp_servers", "shape": "toml" }
+      },
+      "notes": "MCP is configured globally in TOML, not per project. Installer emits manual setup instructions instead of writing it."
+    },
+    {
+      "id": "copilot",
+      "name": "GitHub Copilot / VS Code",
+      "aliases": ["vscode", "github-copilot"],
+      "confidence": "medium",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": ".github/copilot-instructions.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "project", "path": ".vscode/mcp.json", "key": "servers", "shape": "standard" }
+      },
+      "notes": "VS Code uses the key 'servers', not 'mcpServers'. Path-scoped rules also exist as .github/instructions/*.instructions.md with an applyTo frontmatter key."
+    },
+    {
+      "id": "gemini-cli",
+      "name": "Gemini CLI",
+      "aliases": ["gemini"],
+      "confidence": "medium",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": "GEMINI.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "project", "path": ".gemini/settings.json", "key": "mcpServers", "shape": "standard" }
+      },
+      "notes": "settings.json holds more than MCP; installer merges only the mcpServers key and preserves the rest."
+    },
+    {
+      "id": "windsurf",
+      "name": "Windsurf",
+      "aliases": ["codeium"],
+      "confidence": "medium",
+      "surfaces": {
+        "instructions": { "style": "dir-rules-md", "path": ".windsurf/rules", "filename": "00-agent-toolkit.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "global", "path": "~/.codeium/windsurf/mcp_config.json", "key": "mcpServers", "shape": "standard" }
+      },
+      "notes": "Rules directory is project-local; MCP config is global."
+    },
+    {
+      "id": "cline",
+      "name": "Cline",
+      "aliases": [],
+      "confidence": "medium",
+      "surfaces": {
+        "instructions": { "style": "dir-rules-md", "path": ".clinerules", "filename": "00-agent-toolkit.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "global", "path": "cline_mcp_settings.json", "key": "mcpServers", "shape": "standard" }
+      },
+      "notes": ".clinerules may be a single file or a directory; the directory form is used here."
+    },
+    {
+      "id": "roo",
+      "name": "Roo Code",
+      "aliases": ["roo-code"],
+      "confidence": "medium",
+      "surfaces": {
+        "instructions": { "style": "dir-rules-md", "path": ".roo/rules", "filename": "00-agent-toolkit.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "project", "path": ".roo/mcp.json", "key": "mcpServers", "shape": "standard" }
+      },
+      "notes": "Fork lineage of Cline with project-scoped MCP support."
+    },
+    {
+      "id": "junie",
+      "name": "JetBrains Junie",
+      "aliases": ["jetbrains"],
+      "confidence": "low",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": ".junie/guidelines.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "global", "path": "IDE settings", "key": null, "shape": "ide" }
+      },
+      "notes": "MCP is configured through the IDE UI. Verify the guidelines path against your Junie version."
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "aliases": [],
+      "confidence": "medium",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": "AGENTS.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "project", "path": "opencode.json", "key": "mcp", "shape": "opencode" }
+      },
+      "notes": "MCP entry shape differs: {type:'local', command:[bin, ...args], enabled:true}."
+    },
+    {
+      "id": "aider",
+      "name": "Aider",
+      "aliases": [],
+      "confidence": "medium",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": "CONVENTIONS.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "unsupported", "path": null, "key": null, "shape": null }
+      },
+      "notes": "Conventions file is passed with --read CONVENTIONS.md; no MCP support."
+    },
+    {
+      "id": "amp",
+      "name": "Amp",
+      "aliases": ["sourcegraph-amp"],
+      "confidence": "low",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": "AGENTS.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "global", "path": "amp settings", "key": null, "shape": "ide" }
+      },
+      "notes": "Consumes AGENTS.md. Verify MCP configuration location for your version."
+    },
+    {
+      "id": "zed",
+      "name": "Zed",
+      "aliases": [],
+      "confidence": "low",
+      "surfaces": {
+        "instructions": { "style": "root-pointer", "path": ".rules" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "global", "path": "~/.config/zed/settings.json", "key": "context_servers", "shape": "zed" }
+      },
+      "notes": "Zed calls MCP servers 'context servers'."
+    },
+    {
+      "id": "kilocode",
+      "name": "Kilo Code",
+      "aliases": ["kilo"],
+      "confidence": "low",
+      "surfaces": {
+        "instructions": { "style": "dir-rules-md", "path": ".kilocode/rules", "filename": "00-agent-toolkit.md" },
+        "skills": { "path": null, "mode": null },
+        "mcp": { "scope": "project", "path": ".kilocode/mcp.json", "key": "mcpServers", "shape": "standard" }
+      },
+      "notes": "Roo/Cline lineage."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "nextjs",
+  "title": "Next.js",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "nextjs"
+  ],
+  "summary": "App Router, server components, data fetching and rendering strategy.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/nextjs.instructions.md",
+          "to": "rules/NEXTJS.md"
+        }
+      ]
+    }
+  ]
+}

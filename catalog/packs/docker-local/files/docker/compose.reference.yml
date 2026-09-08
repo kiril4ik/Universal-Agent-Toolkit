@@ -1,0 +1,70 @@
+# Reference compose file - copy the patterns, adapt to your stack.
+#
+# Demonstrates: named volumes for data, health checks with dependants that
+# wait, mounted source for hot reload, pinned images, env from file.
+
+name: myapp
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development          # multi-stage: dev deps + hot reload
+    depends_on:
+      db:
+        condition: service_healthy # wait for READY, not merely started
+      cache:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://app:app@db:5432/app
+      REDIS_URL: redis://cache:6379
+    env_file:
+      - .env                       # gitignored; .env.example is committed
+    ports:
+      - "127.0.0.1:3000:3000"      # bound to localhost, not 0.0.0.0
+    volumes:
+      - ./src:/app/src             # hot reload
+      - ./public:/app/public
+      - /app/node_modules          # do not shadow the container's install
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  db:
+    image: postgres:16.4-alpine    # pinned, not :latest
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app       # local only; production reads a secret
+      POSTGRES_DB: app
+    volumes:
+      - db-data:/var/lib/postgresql/data   # NAMED volume: survives rebuilds
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro  # runs only when empty
+    ports:
+      - "127.0.0.1:5432:5432"      # exposed for local tools only
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cache:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - cache-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db-data:      # your data lives here. `docker compose down -v` deletes it.
+  cache-data:

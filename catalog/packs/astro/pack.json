@@ -1,0 +1,23 @@
+{
+  "id": "astro",
+  "title": "Astro",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "astro"
+  ],
+  "summary": "Islands architecture, content collections and rendering modes.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/astro.instructions.md",
+          "to": "rules/ASTRO.md"
+        }
+      ]
+    }
+  ]
+}

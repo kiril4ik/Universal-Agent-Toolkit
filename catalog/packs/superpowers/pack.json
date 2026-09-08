@@ -1,0 +1,17 @@
+{
+  "id": "superpowers",
+  "title": "Superpowers engineering skills",
+  "tier": "core",
+  "tags": [
+    "process"
+  ],
+  "detect": [],
+  "summary": "Jesse Vincent's engineering discipline skills: brainstorming, writing-plans, TDD, systematic debugging, verification, code review. The backbone of the workflow.",
+  "vendor_maps": [
+    {
+      "vendor": "superpowers",
+      "src": "skills",
+      "dest": "skills"
+    }
+  ]
+}

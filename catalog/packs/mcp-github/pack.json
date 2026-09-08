@@ -1,0 +1,8 @@
+{
+  "id": "mcp-github",
+  "title": "GitHub MCP",
+  "tier": "optional",
+  "tags": ["mcp", "vcs"],
+  "detect": [],
+  "summary": "Read and write issues, pull requests and repository content. Requires a personal access token."
+}

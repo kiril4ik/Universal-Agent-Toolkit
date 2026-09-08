@@ -1,0 +1,15 @@
+{
+  "id": "awesome-cursorrules",
+  "repo": "https://github.com/PatrickJS/awesome-cursorrules.git",
+  "ref": "b044f956f021b6e8877f16781bcfc466a6a120e9",
+  "license": "CC0-1.0",
+  "include": [
+    "rules",
+    "LICENSE",
+    "README.md"
+  ],
+  "content_sha256": "5723f26b7dd1a0f81dfeac2200821be0efcd23d5759970aca544e26772b515af",
+  "fetched_at": "2026-09-08T11:45:06+00:00",
+  "notes": "Community rule collection (public domain). Quality varies and some entries are stylistic preference rather than best practice - used to fill gaps awesome-copilot does not cover. Review a rule before adding a pack for it.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}

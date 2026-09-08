@@ -1,0 +1,15 @@
+{
+  "id": "superpowers",
+  "repo": "https://github.com/obra/superpowers.git",
+  "ref": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+  "license": "MIT",
+  "include": [
+    "skills",
+    "LICENSE",
+    "README.md"
+  ],
+  "content_sha256": "01cc92e34aa2fb3450085bf03e87f1d90ee7ff9162a2216c3df7a1bcf7384ef3",
+  "fetched_at": "2026-09-08T11:38:40+00:00",
+  "notes": "Jesse Vincent's engineering-discipline skills: brainstorming, writing-plans, TDD, systematic debugging, verification. The backbone of the planning workflow.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}

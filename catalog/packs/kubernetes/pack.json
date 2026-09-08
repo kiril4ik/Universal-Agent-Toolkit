@@ -1,0 +1,23 @@
+{
+  "id": "kubernetes",
+  "title": "Kubernetes",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [
+    "kubernetes"
+  ],
+  "summary": "Deployment, probes, resources, and manifest structure.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/kubernetes-deployment-best-practices.instructions.md",
+          "to": "rules/KUBERNETES.md"
+        }
+      ]
+    }
+  ]
+}

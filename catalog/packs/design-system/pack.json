@@ -1,0 +1,17 @@
+{
+  "id": "design-system",
+  "title": "Design system builder",
+  "tier": "optional",
+  "tags": [
+    "design"
+  ],
+  "detect": [],
+  "summary": "Three-layer design tokens, component specifications and systematic design.",
+  "vendor_maps": [
+    {
+      "vendor": "ui-ux-pro-max",
+      "src": ".claude/skills/design-system",
+      "dest": "skills/design-system"
+    }
+  ]
+}

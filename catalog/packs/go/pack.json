@@ -1,0 +1,23 @@
+{
+  "id": "go",
+  "title": "Go",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "go"
+  ],
+  "summary": "Idiomatic Go: errors, concurrency, interfaces, project layout.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/go.instructions.md",
+          "to": "rules/GO.md"
+        }
+      ]
+    }
+  ]
+}

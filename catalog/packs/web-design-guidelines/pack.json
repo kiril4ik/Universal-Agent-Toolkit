@@ -1,0 +1,19 @@
+{
+  "id": "web-design-guidelines",
+  "title": "Web design guidelines (Vercel)",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "frontend"
+  ],
+  "summary": "Vercel Labs' web design guidance for interface quality.",
+  "vendor_maps": [
+    {
+      "vendor": "vercel-agent-skills",
+      "src": "skills/web-design-guidelines",
+      "dest": "skills/web-design-guidelines"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "laravel-react",
+  "description": "Laravel API with a React frontend, Postgres and Docker.",
+  "extends": [
+    "frontend"
+  ],
+  "packs": [
+    "laravel",
+    "react-best-practices",
+    "react-composition",
+    "postgresql",
+    "tailwind",
+    "docker",
+    "playwright",
+    "deploy-ubuntu",
+    "docker-local"
+  ]
+}

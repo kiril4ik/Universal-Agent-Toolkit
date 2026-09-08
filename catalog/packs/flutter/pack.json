@@ -1,0 +1,21 @@
+{
+  "id": "flutter",
+  "title": "Dart & Flutter",
+  "tier": "optional",
+  "tags": [
+    "mobile"
+  ],
+  "detect": [],
+  "summary": "Widget composition, state management and Dart conventions.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/dart-n-flutter.instructions.md",
+          "to": "rules/FLUTTER.md"
+        }
+      ]
+    }
+  ]
+}

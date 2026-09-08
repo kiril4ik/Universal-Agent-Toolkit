@@ -1,0 +1,19 @@
+{
+  "id": "react-composition",
+  "title": "React composition patterns",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "react"
+  ],
+  "summary": "Component composition patterns that avoid prop drilling and premature abstraction.",
+  "vendor_maps": [
+    {
+      "vendor": "vercel-agent-skills",
+      "src": "skills/composition-patterns",
+      "dest": "skills/composition-patterns"
+    }
+  ]
+}

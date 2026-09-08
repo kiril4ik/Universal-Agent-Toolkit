@@ -1,0 +1,6 @@
+{
+  "name": "design",
+  "description": "Design-led work: Figma-first implementation with browser verification.",
+  "extends": ["frontend"],
+  "packs": ["mcp-figma", "brand", "web-design-guidelines"]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "vue",
+  "title": "Vue",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "vue"
+  ],
+  "summary": "Composition API, reactivity, component design and state management.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/vue.instructions.md",
+          "to": "rules/VUE.md"
+        }
+      ]
+    }
+  ]
+}

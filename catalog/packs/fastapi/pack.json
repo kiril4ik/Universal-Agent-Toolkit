@@ -1,0 +1,23 @@
+{
+  "id": "fastapi",
+  "title": "FastAPI",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "fastapi"
+  ],
+  "summary": "FastAPI production architecture. Community rule (CC0).",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-cursorrules",
+      "files": [
+        {
+          "from": "rules/fastapi-production-architecture-cursorrules-prompt-file.mdc",
+          "to": "rules/FASTAPI.md"
+        }
+      ]
+    }
+  ]
+}

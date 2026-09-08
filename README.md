@@ -1,215 +1,168 @@
 # Universal Agent Toolkit
 
-A repository-local, version-controlled foundation for **planning, building, reviewing, testing, and deploying software with AI coding agents**.
-
-The idea is simple: prepare the good tools once, then every project receives only the skills, rules, and MCP integrations it actually needs.
-
-## Why this exists
-
-AI coding tools work much better when they share a disciplined workflow, reliable project context, and consistent safety rules. In practice, each tool has its own instruction files, skill directories, MCP configuration, and defaults. Projects also need different rules depending on their stack.
-
-This repository separates two concerns:
-
-1. **Universal toolkit maintenance** — research, audit, pin, and keep a reusable library of skills/rules/MCP definitions.
-2. **Per-project bootstrap** — inspect a project, choose only relevant resources, and copy them locally without overwriting existing configuration.
-
-It is intentionally **project-local**. A bootstrapped project should not depend on hidden global Claude/Codex/Cursor configuration.
-
-## First command
+Install AI coding rules, skills, MCP servers and a project planning workflow
+into any project — **for the coding agent you actually use, and nothing else.**
 
 ```bash
-./scripts/preinstall.sh --project /path/to/project
+./bin/uat install --project ~/code/my-app --agent claude-code
 ```
 
-The installer first asks how autonomous the agent should be:
+That creates exactly one folder, `.agent-toolkit/`, plus the two or three
+files Claude Code itself needs. It does not create `.cursor/`, `.windsurf/`,
+`.clinerules`, `GEMINI.md` or anything else you did not ask for.
 
-- **Thorough** — ask all questions that materially affect product, architecture, design, or implementation.
-- **Focused** — ask only important/blocking questions; use sensible defaults for the rest. **Default.**
-- **Autonomous** — make reasonable decisions independently; interrupt only for destructive/irreversible actions or truly ambiguous product decisions.
+## Why
 
-Then it detects the stack and shows an interactive checklist:
+Every coding agent has its own instruction file, rules directory and MCP
+configuration. Every project needs different rules. The usual result is a
+project root littered with config for eight tools, none of which is current.
 
-```text
-Skills & Rules
-  1 [x] Superpowers                     recommended
-  2 [x] Karpathy Guidelines            core
-  3 [x] Data & Docker Safety           core
-  4 [x] Git / Atomic Commits           core
-  5 [x] Security                       core
-  6 [x] UI UX Pro Max                  frontend
-  7 [x] Figma Design-to-Code           frontend
-  8 [x] React Best Practices           detected: react
-  9 [ ] Laravel Rules                  not detected
+This repository separates two jobs:
 
-MCP
- 10 [x] Playwright                     core
- 11 [x] Context7                       core
- 12 [x] Figma                          frontend
- 13 [ ] GitHub                         optional
-```
+1. **A broad library, maintained once** — pinned upstream rules, skills and
+   MCP definitions, verified against their source commits.
+2. **A narrow install, per project** — detect the stack, copy only what that
+   project needs, generate only the surfaces that one agent reads.
 
-Toggle items by number, choose all with `a`, none with `n`, reset recommendations with `r`, then press Enter.
-
-If a resource is already present, it is shown as `✓ installed — skip`. Re-running the installer is safe and idempotent. Existing project files are **never overwritten by default**.
-
-## Core principles
-
-- **Research once, reuse locally.** External resources are evaluated and pinned here before projects consume them.
-- **Copy only what the project needs.** Backend-only projects do not receive Figma/UI packs. PHP projects do not receive Rust rules.
-- **Load only what the current task needs.** A project may contain several skills without injecting all of them into every prompt.
-- **No silent overwrite.** Existing instructions, skills, MCP configs, or project files are skipped unless `--force` is explicit.
-- **Data is valuable by default.** Never assume a database/volume is disposable.
-- **Atomic Git history.** Commit by coherent feature/change set. No AI attribution and no `Co-authored-by` trailers.
-- **Evidence before completion.** Tests/build/lint/browser verification must actually run before claiming success.
-- **No global install.** Project-local skills/config/runtime only.
-
-## Repository layout
-
-```text
-.
-├── AGENTS.md
-├── CLAUDE.md
-├── GEMINI.md
-├── CONVENTIONS.md
-├── toolkit/
-│   ├── manifest.json
-│   ├── core/
-│   └── packs/
-├── vendor/
-├── profiles/
-├── adapters/
-├── templates/project/
-├── scripts/
-│   ├── preinstall.sh
-│   ├── preinstall.py
-│   ├── bootstrap-mcp-runtime.sh
-│   └── verify-toolkit.sh
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── PROJECT-PLANNING.md
-    ├── TOOL-COMPATIBILITY.md
-    ├── MCP.md
-    ├── DATA-SAFETY.md
-    ├── ADDING-A-SKILL.md
-    └── UPDATING-UPSTREAMS.md
-```
-
-## What a bootstrapped project gets
-
-```text
-project/
-├── AGENTS.md
-├── CLAUDE.md
-├── GEMINI.md
-├── CONVENTIONS.md
-├── .agent-toolkit/
-│   ├── CORE.md
-│   ├── project.json
-│   ├── installed.json
-│   ├── rules/
-│   ├── mcp/
-│   └── reports/
-├── .agents/skills/
-├── .claude/skills/
-├── .cursor/rules/
-├── .windsurf/rules/
-├── .github/copilot-instructions.md
-├── .clinerules
-├── .roo/rules/
-└── .junie/guidelines.md
-```
-
-Only selected packs are copied.
-
-## Recommended defaults
-
-**Core:** Superpowers, Karpathy Guidelines, Git/atomic commits, data safety, security, verification, Playwright MCP, Context7 MCP.
-
-**Frontend:** UI UX Pro Max, Figma skills/MCP, Web Interface Guidelines, Playwright visual verification.
-
-**React/Next:** Vercel React best practices.
-
-**Database:** database-specific rules plus mandatory data-safety rules.
-
-## MCP philosophy
-
-- **Core:** Playwright, Context7.
-- **Design:** Figma remote MCP.
-- **Optional authenticated:** GitHub, Sentry, project-specific services.
-- **Dangerous/data-mutating:** database and infrastructure MCPs are never enabled with broad write permissions by default.
-
-`bootstrap-mcp-runtime.sh` installs supported npm MCP runtimes under:
-
-```text
-<project>/.agent-toolkit/runtime/
-```
-
-Never globally. It checks installed versions first and skips exact matches.
-
-Remote MCPs such as Figma do not have a local server package to install; this toolkit stores the endpoint configuration and local Figma skills.
-
-## Project planning starts after bootstrap
-
-```text
-1. Run preinstall.sh
-2. Choose interaction mode
-3. Detect/choose local skills, rules, MCPs
-4. Inspect the project
-5. Ask questions according to the selected mode
-6. Define business logic and pages
-7. Generate realistic content
-8. Prepare/generate design if applicable
-9. Select technology stack
-10. Add only missing relevant stack rules
-11. Define architecture
-12. Prepare Docker/local environment
-13. Prepare clean-server + existing-server deployment
-14. Create detailed implementation plan
-15. Resolve final blockers/assumptions
-16. Implement incrementally and verify each step
-```
-
-Every major phase should produce a short report under `.agent-toolkit/reports/`.
-
-See [`docs/PROJECT-PLANNING.md`](docs/PROJECT-PLANNING.md).
-
-## Data safety
-
-Routine Docker rebuilds must preserve persistent volumes. Do not casually run:
-
-```text
-docker compose down -v
-docker volume prune
-docker system prune --volumes
-php artisan migrate:fresh
-php artisan db:wipe
-DROP DATABASE
-DROP SCHEMA
-TRUNCATE <important table>
-```
-
-For significant production-like schema/data changes: identify the environment, make/verify a backup when risk warrants it, define recovery, then change data.
-
-## Git policy
-
-- Prefer Conventional Commit-style messages.
-- One coherent feature/fix/refactor per commit.
-- Do not mix unrelated cleanup into a feature commit.
-- Commit only after relevant verification.
-- Never add `Co-authored-by`, `Generated-by`, `AI-assisted`, model names, or similar AI attribution unless the human explicitly asks.
-
-## Non-interactive usage
+## Quick start
 
 ```bash
-./scripts/preinstall.sh --project ../my-app --yes
-./scripts/preinstall.sh --project ../my-app --all --yes
-./scripts/preinstall.sh --project ../my-app --profile laravel-react --yes
-./scripts/preinstall.sh --project ../my-app --dry-run
-./scripts/preinstall.sh --project ../my-app --force
+./bin/uat agents                    # 14 supported agents and what each one gets
+./bin/uat catalog                   # 45 packs and 6 profiles
+./bin/uat detect  --project ~/app   # what stack is in there, and the evidence
+./bin/uat install --project ~/app --agent claude-code
 ```
 
-## Upstream provenance
+Add `--dry-run` to see every file that would change before anything does.
 
-Pinned upstream sources live in `vendor/SOURCES.md` and `toolkit/manifest.json`. Third-party snapshots stay as close to upstream as possible; our policy belongs in `toolkit/core/` and local packs.
+```bash
+./bin/uat install --project ~/app --agent cursor --profile nextjs
+./bin/uat install --project ~/app --agent claude-code --agent cursor
+./bin/uat status    --project ~/app     # what is installed, and local drift
+./bin/uat uninstall --project ~/app     # removes only what it created
+```
 
-The installer is the boundary: **broad library here, narrow project context there**.
+Interactive by default: it asks for an interaction mode, then shows a
+checklist of packs with the detected stack marked. `--yes` skips both.
+
+## What a project gets
+
+```
+my-app/
+├── .agent-toolkit/          <- everything lives here
+│   ├── CORE.md              routing file: what exists, when to read it
+│   ├── core/                safety, git, verification, interaction modes
+│   ├── workflow/            the 12-phase planning workflow
+│   ├── rules/               only the stack rules this project uses
+│   ├── skills/              vendored skills, stored once
+│   ├── mcp/                 neutral server specs + setup status
+│   ├── deploy/  docker/     provisioning and local-dev templates
+│   ├── reports/             one report per completed phase
+│   ├── project.json         mode, agents, detected stack
+│   └── installed.json       lockfile with content hashes
+├── CLAUDE.md                <- a pointer, ~600 bytes
+├── .claude/skills -> ../.agent-toolkit/skills
+└── .mcp.json
+```
+
+Skills are **symlinked**, not copied, so nothing is duplicated on disk.
+Use `--copy` on filesystems without symlink support.
+
+## Supported agents
+
+Claude Code, Cursor, Codex, GitHub Copilot / VS Code, Gemini CLI, Windsurf,
+Cline, Roo Code, JetBrains Junie, OpenCode, Aider, Amp, Zed, Kilo Code.
+
+Every tool-specific path and config key lives in
+[`catalog/agents.json`](catalog/agents.json). A format change is a one-line
+edit there, never a code change. Each agent carries a `confidence` rating for
+how well its format is verified — check it with `uat agents --show cursor`.
+
+Only Claude Code has native skills, so only Claude Code gets a skills mount.
+Every other agent gets the same content as plain Markdown it can read.
+
+## The planning workflow
+
+`.agent-toolkit/workflow/` holds a twelve-phase sequence any agent can follow:
+
+| | | |
+|---|---|---|
+| 00 triage | 01 discovery | 02 business logic |
+| 03 screens & flows | 04 content | 05 design |
+| 06 stack | 07 rules | 08 architecture |
+| 09 environments | 10 implementation plan | 11 gate |
+
+Triage picks the depth: a one-line fix runs discovery and stops; a new product
+runs everything. **Phase 11 is never skipped** — nothing is implemented until
+the artifacts are checked against each other and a human approves.
+
+## Provenance is enforced, not claimed
+
+Every vendored file is fetched from a pinned commit and hashed:
+
+```bash
+./bin/uat vendor list      # pins, licences and verification state
+./bin/uat vendor verify    # re-hashes; a hand-edited snapshot fails loudly
+./bin/uat vendor sync      # fetch at the pinned commits
+```
+
+| Upstream | Licence | What |
+|---|---|---|
+| [obra/superpowers](https://github.com/obra/superpowers) | MIT | 14 engineering-discipline skills |
+| [github/awesome-copilot](https://github.com/github/awesome-copilot) | MIT | 193 technology instruction guides |
+| [PatrickJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules) | CC0 | 257 community rules (gap filling) |
+| [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | MIT | React / Next.js best practices |
+| [vercel-labs/web-interface-guidelines](https://github.com/vercel-labs/web-interface-guidelines) | MIT | Interface quality checklist |
+| [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Design intelligence and palettes |
+| [emavv/karpathy-guidelines](https://github.com/emavv/karpathy-guidelines) | MIT | Anti-overcomplication guardrails |
+
+Vendored content is **never edited**. Our own policy lives in `catalog/core/`.
+
+**Not vendored:** Figma's skills are governed by the Figma Developer Terms
+rather than an open-source licence, so the `mcp-figma` pack ships our own
+integration guide and tells you how to install theirs from source.
+
+## Deployment
+
+The `deploy-ubuntu` pack ships working, tested bash:
+
+- `inspect-server.sh` — read-only audit; run it before touching any server
+- `provision-clean.sh` — fresh Ubuntu to ready-to-host
+- `provision-existing.sh` — adds an app to a server already running things:
+  refuses a taken port, writes exactly one new nginx site, never modifies an
+  existing config, validates before reloading, never touches a database
+- `deploy.sh` — atomic symlink release with health check and auto-revert
+- `rollback.sh` — return to a previous release
+
+Verified by running them on Ubuntu 24.04, including `nginx -t` on the
+generated config.
+
+## Design rules
+
+- **One folder.** Everything installed lives in `.agent-toolkit/`.
+- **Only what is asked for.** Selecting one agent never creates another's files.
+- **Pointers, not copies.** Tool files route to the canonical content.
+- **No silent overwrite.** Existing files are kept and reported; `--force` is explicit.
+- **Nothing global.** No global installs, ever.
+- **Data is valuable.** Destructive operations are gated, including locally.
+- **Evidence before claims.** See `catalog/core/VERIFICATION.md`.
+
+## Requirements
+
+Python 3.9+ and git. No dependencies, no install step, no build.
+
+## Tests
+
+```bash
+./bin/uat-test     # 50 tests
+./bin/uat doctor   # verify catalog, registry and vendored snapshots
+```
+
+## Adding things
+
+- **A new agent** — add an entry to `catalog/agents.json`.
+- **A new rule pack** — add `catalog/packs/<id>/pack.json`; map a vendored file
+  or add your own under `files/`.
+- **A new upstream** — add it to `catalog/vendor.json` and run `uat vendor sync`.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

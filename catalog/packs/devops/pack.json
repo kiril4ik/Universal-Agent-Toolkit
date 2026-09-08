@@ -1,0 +1,21 @@
+{
+  "id": "devops",
+  "title": "DevOps principles",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [],
+  "summary": "CI/CD, observability, automation and operational ownership.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/devops-core-principles.instructions.md",
+          "to": "rules/DEVOPS.md"
+        }
+      ]
+    }
+  ]
+}

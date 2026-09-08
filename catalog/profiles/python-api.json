@@ -1,0 +1,16 @@
+{
+  "name": "python-api",
+  "description": "FastAPI service with Postgres, Docker and CI.",
+  "extends": [
+    "core"
+  ],
+  "packs": [
+    "fastapi",
+    "postgresql",
+    "docker",
+    "github-actions",
+    "qa",
+    "deploy-ubuntu",
+    "docker-local"
+  ]
+}

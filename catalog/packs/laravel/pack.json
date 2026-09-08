@@ -1,0 +1,23 @@
+{
+  "id": "laravel",
+  "title": "Laravel",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "laravel"
+  ],
+  "summary": "Laravel with modern PHP. Community rule (CC0) - review before relying on it.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-cursorrules",
+      "files": [
+        {
+          "from": "rules/laravel-php-83-cursorrules-prompt-file.mdc",
+          "to": "rules/LARAVEL.md"
+        }
+      ]
+    }
+  ]
+}

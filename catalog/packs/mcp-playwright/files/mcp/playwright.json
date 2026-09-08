@@ -1,0 +1,9 @@
+{
+  "name": "playwright",
+  "title": "Playwright browser automation",
+  "summary": "Navigate pages, interact with elements, capture screenshots and inspect the accessibility tree. The difference between 'the UI should work' and evidence that it does.",
+  "command": "npx",
+  "args": ["-y", "@playwright/mcp@0.0.80"],
+  "risk": "low",
+  "setup": "Requires Node.js. Browsers download on first use. No credentials needed.\n\nUse it to satisfy the verification rule for any UI change: navigate to the page, screenshot it, and read the result before claiming the work is done."
+}

@@ -1,0 +1,23 @@
+{
+  "id": "svelte",
+  "title": "Svelte",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "svelte"
+  ],
+  "summary": "Runes, stores, component patterns and SvelteKit conventions.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/svelte.instructions.md",
+          "to": "rules/SVELTE.md"
+        }
+      ]
+    }
+  ]
+}

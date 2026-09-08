@@ -1,0 +1,19 @@
+{
+  "id": "ui-ux-pro-max",
+  "repo": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git",
+  "ref": "4aad0584d92131626b16d4ff4d77f0455385013c",
+  "license": "MIT",
+  "include": [
+    ".claude/skills/ui-ux-pro-max",
+    ".claude/skills/design-system",
+    ".claude/skills/brand",
+    ".claude/skills/banner-design",
+    ".claude/skills/slides",
+    "LICENSE",
+    "README.md"
+  ],
+  "content_sha256": "c4b6a135137695b965b3b27738c1152a5911ae37377fb4129bf625ccc911c86b",
+  "fetched_at": "2026-09-08T11:38:45+00:00",
+  "notes": "UI/UX reference data: style catalogues, colour palettes, font pairings, UX guidelines. The 'ui-styling' (5.7 MB) and 'design' skills are excluded for size and API-key reasons - add them here if you want them.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}

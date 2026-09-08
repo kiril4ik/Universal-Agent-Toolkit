@@ -1,0 +1,8 @@
+{
+  "id": "mcp-figma",
+  "title": "Figma MCP (design-to-code)",
+  "tier": "optional",
+  "tags": ["mcp", "design", "frontend"],
+  "detect": [],
+  "summary": "Read design data directly from Figma so implementation uses real values instead of eyeballed ones. Requires the Figma desktop app and an eligible seat."
+}

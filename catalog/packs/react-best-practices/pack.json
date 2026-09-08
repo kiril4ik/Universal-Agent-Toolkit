@@ -1,0 +1,19 @@
+{
+  "id": "react-best-practices",
+  "title": "React best practices (Vercel)",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "react"
+  ],
+  "summary": "Vercel Labs' React guidance: rendering, state, effects, performance.",
+  "vendor_maps": [
+    {
+      "vendor": "vercel-agent-skills",
+      "src": "skills/react-best-practices",
+      "dest": "skills/react-best-practices"
+    }
+  ]
+}

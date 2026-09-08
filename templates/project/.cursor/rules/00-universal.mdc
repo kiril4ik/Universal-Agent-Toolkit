@@ -1,5 +1,0 @@
----
-description: Universal project workflow and safety rules
-alwaysApply: true
----
-Read `AGENTS.md` and `.agent-toolkit/CORE.md`. Respect project-local skills and data/Git safety rules.

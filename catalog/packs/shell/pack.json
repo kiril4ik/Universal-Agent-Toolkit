@@ -1,0 +1,21 @@
+{
+  "id": "shell",
+  "title": "Shell scripting",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [],
+  "summary": "Safe bash: strict mode, quoting, error handling and portability.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/shell.instructions.md",
+          "to": "rules/SHELL.md"
+        }
+      ]
+    }
+  ]
+}

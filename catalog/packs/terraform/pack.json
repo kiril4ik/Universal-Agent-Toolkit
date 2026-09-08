@@ -1,0 +1,23 @@
+{
+  "id": "terraform",
+  "title": "Terraform",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [
+    "terraform"
+  ],
+  "summary": "Module structure, state management and safe plan/apply practice.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/terraform.instructions.md",
+          "to": "rules/TERRAFORM.md"
+        }
+      ]
+    }
+  ]
+}

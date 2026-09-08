@@ -1,0 +1,23 @@
+{
+  "id": "rust",
+  "title": "Rust",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "rust"
+  ],
+  "summary": "Ownership, error handling, traits and idiomatic Rust patterns.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/rust.instructions.md",
+          "to": "rules/RUST.md"
+        }
+      ]
+    }
+  ]
+}

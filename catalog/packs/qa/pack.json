@@ -1,0 +1,21 @@
+{
+  "id": "qa",
+  "title": "QA engineering",
+  "tier": "optional",
+  "tags": [
+    "testing"
+  ],
+  "detect": [],
+  "summary": "Test strategy, coverage decisions and defect triage.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/qa-engineering-best-practices.instructions.md",
+          "to": "rules/QA.md"
+        }
+      ]
+    }
+  ]
+}

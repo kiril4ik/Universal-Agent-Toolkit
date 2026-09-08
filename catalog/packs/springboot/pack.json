@@ -1,0 +1,23 @@
+{
+  "id": "springboot",
+  "title": "Spring Boot",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "spring"
+  ],
+  "summary": "Spring Boot application structure, configuration and testing.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/springboot.instructions.md",
+          "to": "rules/SPRINGBOOT.md"
+        }
+      ]
+    }
+  ]
+}

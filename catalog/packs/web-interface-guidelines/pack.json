@@ -1,0 +1,23 @@
+{
+  "id": "web-interface-guidelines",
+  "title": "Web interface guidelines (Vercel Labs)",
+  "tier": "recommended",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "frontend"
+  ],
+  "summary": "Interface quality checklist: interactions, forms, focus, motion, accessibility.",
+  "vendor_maps": [
+    {
+      "vendor": "web-interface-guidelines",
+      "files": [
+        {
+          "from": "AGENTS.md",
+          "to": "rules/WEB_INTERFACE_GUIDELINES.md"
+        }
+      ]
+    }
+  ]
+}

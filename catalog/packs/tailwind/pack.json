@@ -1,0 +1,23 @@
+{
+  "id": "tailwind",
+  "title": "Tailwind CSS",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "tailwind"
+  ],
+  "summary": "Tailwind v4 configuration, design tokens and utility composition.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/tailwind-v4-vite.instructions.md",
+          "to": "rules/TAILWIND.md"
+        }
+      ]
+    }
+  ]
+}

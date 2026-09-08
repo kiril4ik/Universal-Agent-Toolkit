@@ -1,0 +1,17 @@
+{
+  "id": "writing-guidelines",
+  "title": "Writing guidelines",
+  "tier": "optional",
+  "tags": [
+    "content"
+  ],
+  "detect": [],
+  "summary": "Clear technical writing for docs, UI copy and error messages.",
+  "vendor_maps": [
+    {
+      "vendor": "vercel-agent-skills",
+      "src": "skills/writing-guidelines",
+      "dest": "skills/writing-guidelines"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Karpathy Guidelines"
+  short_description: "Universal behavioral principles: think first, keep it simple, change surgically, verify with goals. Reduces agent mistakes across all task types."
+  default_prompt: "Follow the Karpathy Guidelines: think before acting, prefer simplicity, make surgical changes, and execute with verifiable goals."

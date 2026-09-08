@@ -1,0 +1,23 @@
+{
+  "id": "accessibility",
+  "title": "Accessibility (a11y)",
+  "tier": "recommended",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "frontend"
+  ],
+  "summary": "WCAG-aligned semantics, keyboard access, focus management and ARIA.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/a11y.instructions.md",
+          "to": "rules/ACCESSIBILITY.md"
+        }
+      ]
+    }
+  ]
+}

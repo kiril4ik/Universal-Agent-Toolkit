@@ -1,0 +1,23 @@
+{
+  "id": "playwright",
+  "title": "Playwright testing",
+  "tier": "optional",
+  "tags": [
+    "testing"
+  ],
+  "detect": [
+    "playwright"
+  ],
+  "summary": "End-to-end test structure, locators, waiting and stability.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/playwright-typescript.instructions.md",
+          "to": "rules/PLAYWRIGHT.md"
+        }
+      ]
+    }
+  ]
+}

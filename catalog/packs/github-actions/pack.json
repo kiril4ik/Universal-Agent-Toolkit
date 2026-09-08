@@ -1,0 +1,23 @@
+{
+  "id": "github-actions",
+  "title": "GitHub Actions",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [
+    "github-actions"
+  ],
+  "summary": "Workflow structure, caching, secrets handling and CI/CD patterns.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/github-actions-ci-cd-best-practices.instructions.md",
+          "to": "rules/GITHUB_ACTIONS.md"
+        }
+      ]
+    }
+  ]
+}

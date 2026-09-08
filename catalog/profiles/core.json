@@ -1,0 +1,5 @@
+{
+  "name": "core",
+  "description": "The baseline every project gets: engineering discipline, safety, security rules and documentation lookup.",
+  "packs": ["superpowers", "karpathy-guidelines", "security", "mcp-context7"]
+}

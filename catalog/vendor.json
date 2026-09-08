@@ -1,0 +1,97 @@
+{
+  "$comment": [
+    "Pinned upstream snapshots. `uat vendor sync` fetches these commits verbatim;",
+    "`uat vendor verify` re-hashes the result so a hand-edited snapshot fails loudly.",
+    "",
+    "POLICY: content under vendor/ is never edited. Our own policy lives in",
+    "catalog/core/ and catalog/packs/. If an upstream is wrong, add an overlay",
+    "pack rather than patching the snapshot.",
+    "",
+    "LICENSING: only redistributable licences are vendored here. Figma's skills are",
+    "governed by the Figma Developer Terms rather than an OSS licence, so they are",
+    "NOT vendored - the figma pack ships our own integration guide and tells you to",
+    "install Figma's official skills from source yourself."
+  ],
+  "upstreams": [
+    {
+      "id": "superpowers",
+      "repo": "https://github.com/obra/superpowers.git",
+      "ref": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "license": "MIT",
+      "include": ["skills", "LICENSE", "README.md"],
+      "notes": "Jesse Vincent's engineering-discipline skills: brainstorming, writing-plans, TDD, systematic debugging, verification. The backbone of the planning workflow."
+    },
+    {
+      "id": "web-interface-guidelines",
+      "repo": "https://github.com/vercel-labs/web-interface-guidelines.git",
+      "ref": "e3d624baaf29dc1fc645aff3e38f03e564d2d6b1",
+      "license": "MIT",
+      "include": ["AGENTS.md", "LICENSE", "README.md"],
+      "notes": "Vercel Labs interface quality checklist (accessibility, motion, forms, focus). AGENTS.md is the guideline text itself."
+    },
+    {
+      "id": "vercel-agent-skills",
+      "repo": "https://github.com/vercel-labs/agent-skills.git",
+      "ref": "063bee94c3f4df8453406c830b0a7df0f2860278",
+      "license": "MIT (stated in README; repository has no LICENSE file)",
+      "include": [
+        "skills/react-best-practices",
+        "skills/composition-patterns",
+        "skills/react-view-transitions",
+        "skills/web-design-guidelines",
+        "skills/writing-guidelines",
+        "README.md"
+      ],
+      "notes": "React and Next.js best practices from Vercel Labs. Deployment-specific skills are deliberately excluded."
+    },
+    {
+      "id": "karpathy-guidelines",
+      "repo": "https://github.com/emavv/karpathy-guidelines.git",
+      "ref": "e02e9a451bed53fc661a82269e1a76f61af5ae3f",
+      "license": "MIT (stated in README; repository has no LICENSE file)",
+      "include": ["codex/karpathy-guidelines", "README.md"],
+      "notes": "Behavioural guardrails against LLM overcomplication: surgical changes, surfaced assumptions, verifiable success criteria."
+    },
+    {
+      "id": "awesome-copilot",
+      "repo": "https://github.com/github/awesome-copilot.git",
+      "ref": "f95f1b4c3b153984e3da2744cef395c2355d0a44",
+      "license": "MIT",
+      "include": ["instructions", "LICENSE", "README.md"],
+      "notes": "GitHub's curated instruction library - 193 technology guides. The primary source of stack rules. Only the instructions/ directory is vendored; the full repository is ~200 MB."
+    },
+    {
+      "id": "awesome-cursorrules",
+      "repo": "https://github.com/PatrickJS/awesome-cursorrules.git",
+      "ref": "b044f956f021b6e8877f16781bcfc466a6a120e9",
+      "license": "CC0-1.0",
+      "include": ["rules", "LICENSE", "README.md"],
+      "notes": "Community rule collection (public domain). Quality varies and some entries are stylistic preference rather than best practice - used to fill gaps awesome-copilot does not cover. Review a rule before adding a pack for it."
+    },
+    {
+      "id": "ui-ux-pro-max",
+      "repo": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git",
+      "ref": "4aad0584d92131626b16d4ff4d77f0455385013c",
+      "license": "MIT",
+      "include": [
+        ".claude/skills/ui-ux-pro-max",
+        ".claude/skills/design-system",
+        ".claude/skills/brand",
+        ".claude/skills/banner-design",
+        ".claude/skills/slides",
+        "LICENSE",
+        "README.md"
+      ],
+      "notes": "UI/UX reference data: style catalogues, colour palettes, font pairings, UX guidelines. The 'ui-styling' (5.7 MB) and 'design' skills are excluded for size and API-key reasons - add them here if you want them."
+    }
+  ],
+  "not_vendored": [
+    {
+      "id": "figma-mcp-server-guide",
+      "repo": "https://github.com/figma/mcp-server-guide",
+      "ref": "ae7e5e5f80da20f1dd7445e0c6ae5ac58a5b0bce",
+      "reason": "Governed by the Figma Developer Terms, not an OSS licence. Redistribution inside this repository is not clearly permitted.",
+      "how_to_get": "The figma-design pack explains how to install Figma's official skills directly from source into your own project."
+    }
+  ]
+}

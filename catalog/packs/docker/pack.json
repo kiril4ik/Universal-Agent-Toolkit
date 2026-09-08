@@ -1,0 +1,23 @@
+{
+  "id": "docker",
+  "title": "Docker & containers",
+  "tier": "recommended",
+  "tags": [
+    "infra"
+  ],
+  "detect": [
+    "docker"
+  ],
+  "summary": "Image building, layer caching, multi-stage builds, compose and runtime safety.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/containerization-docker-best-practices.instructions.md",
+          "to": "rules/DOCKER.md"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "symfony",
+  "title": "Symfony",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "symfony"
+  ],
+  "summary": "Services, dependency injection, Doctrine and Symfony conventions.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/php-symfony.instructions.md",
+          "to": "rules/SYMFONY.md"
+        }
+      ]
+    }
+  ]
+}

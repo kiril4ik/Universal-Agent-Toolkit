@@ -1,0 +1,14 @@
+{
+  "id": "karpathy-guidelines",
+  "repo": "https://github.com/emavv/karpathy-guidelines.git",
+  "ref": "e02e9a451bed53fc661a82269e1a76f61af5ae3f",
+  "license": "MIT (stated in README; repository has no LICENSE file)",
+  "include": [
+    "codex/karpathy-guidelines",
+    "README.md"
+  ],
+  "content_sha256": "8e1bc42e12fdc064e7934f365ed1c0d2c960e052b3e64ae232881dbb057054e3",
+  "fetched_at": "2026-09-08T11:38:43+00:00",
+  "notes": "Behavioural guardrails against LLM overcomplication: surgical changes, surfaced assumptions, verifiable success criteria.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}

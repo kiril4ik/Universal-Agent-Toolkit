@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Run the toolkit's own test suite.
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec python3 "$here/tests/test_uat.py" "$@"

@@ -1,0 +1,19 @@
+{
+  "id": "react-view-transitions",
+  "title": "React view transitions",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "react"
+  ],
+  "summary": "View Transitions API patterns for React applications.",
+  "vendor_maps": [
+    {
+      "vendor": "vercel-agent-skills",
+      "src": "skills/react-view-transitions",
+      "dest": "skills/react-view-transitions"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "csharp",
+  "title": "C#",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "dotnet"
+  ],
+  "summary": "Modern C# language features, async patterns and conventions.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/csharp.instructions.md",
+          "to": "rules/CSHARP.md"
+        }
+      ]
+    }
+  ]
+}

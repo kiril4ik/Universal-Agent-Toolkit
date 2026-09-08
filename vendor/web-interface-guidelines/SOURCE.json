@@ -1,0 +1,15 @@
+{
+  "id": "web-interface-guidelines",
+  "repo": "https://github.com/vercel-labs/web-interface-guidelines.git",
+  "ref": "e3d624baaf29dc1fc645aff3e38f03e564d2d6b1",
+  "license": "MIT",
+  "include": [
+    "AGENTS.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "content_sha256": "3d2bc7d5f55799354944a6deec8554299cc032c832eee211aa48b71f185ddf1a",
+  "fetched_at": "2026-09-08T11:38:41+00:00",
+  "notes": "Vercel Labs interface quality checklist (accessibility, motion, forms, focus). AGENTS.md is the guideline text itself.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}

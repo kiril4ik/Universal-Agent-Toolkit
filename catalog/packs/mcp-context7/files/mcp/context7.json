@@ -1,0 +1,9 @@
+{
+  "name": "context7",
+  "title": "Context7 documentation lookup",
+  "summary": "Pulls up-to-date documentation for a specific library version. Use it before writing code against any framework whose API may have changed since training.",
+  "command": "npx",
+  "args": ["-y", "@upstash/context7-mcp@4.0.5"],
+  "risk": "low",
+  "setup": "Requires Node.js. Free tier works without an API key; set CONTEXT7_API_KEY for higher rate limits."
+}

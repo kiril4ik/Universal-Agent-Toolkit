@@ -1,0 +1,21 @@
+{
+  "id": "security",
+  "title": "Security & OWASP",
+  "tier": "core",
+  "tags": [
+    "security"
+  ],
+  "detect": [],
+  "summary": "OWASP-aligned secure coding: injection, authn/authz, secrets, validation.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/security-and-owasp.instructions.md",
+          "to": "rules/SECURITY.md"
+        }
+      ]
+    }
+  ]
+}

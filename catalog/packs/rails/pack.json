@@ -1,0 +1,23 @@
+{
+  "id": "rails",
+  "title": "Ruby on Rails",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "rails"
+  ],
+  "summary": "Rails conventions, ActiveRecord, and testing practice.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/ruby-on-rails.instructions.md",
+          "to": "rules/RAILS.md"
+        }
+      ]
+    }
+  ]
+}

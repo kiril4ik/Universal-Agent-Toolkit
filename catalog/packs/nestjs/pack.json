@@ -1,0 +1,23 @@
+{
+  "id": "nestjs",
+  "title": "NestJS",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "nestjs"
+  ],
+  "summary": "Modules, providers, dependency injection and testing.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/nestjs.instructions.md",
+          "to": "rules/NESTJS.md"
+        }
+      ]
+    }
+  ]
+}

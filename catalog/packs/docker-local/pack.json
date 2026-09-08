@@ -1,0 +1,9 @@
+{
+  "id": "docker-local",
+  "title": "Docker local development",
+  "tier": "recommended",
+  "tags": ["infra", "local"],
+  "detect": ["docker"],
+  "requires": ["docker"],
+  "summary": "A reference compose file and the rules that keep local development reproducible - and keep a rebuild from destroying a developer's database."
+}

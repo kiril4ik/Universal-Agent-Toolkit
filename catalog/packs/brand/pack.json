@@ -1,0 +1,17 @@
+{
+  "id": "brand",
+  "title": "Brand identity",
+  "tier": "optional",
+  "tags": [
+    "design"
+  ],
+  "detect": [],
+  "summary": "Brand voice, visual identity and messaging frameworks.",
+  "vendor_maps": [
+    {
+      "vendor": "ui-ux-pro-max",
+      "src": ".claude/skills/brand",
+      "dest": "skills/brand"
+    }
+  ]
+}

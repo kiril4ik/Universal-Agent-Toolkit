@@ -1,0 +1,21 @@
+{
+  "id": "quarkus",
+  "title": "Quarkus",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [],
+  "summary": "Quarkus application patterns and native-image considerations.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/quarkus.instructions.md",
+          "to": "rules/QUARKUS.md"
+        }
+      ]
+    }
+  ]
+}

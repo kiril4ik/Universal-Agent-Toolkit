@@ -1,0 +1,11 @@
+{
+  "name": "github",
+  "title": "GitHub repository access",
+  "summary": "Issues, pull requests, code search and repository contents.",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-github@2025.4.8"],
+  "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" },
+  "requires": { "env": ["GITHUB_PERSONAL_ACCESS_TOKEN"] },
+  "risk": "medium",
+  "setup": "Create a fine-grained personal access token with the narrowest scope that does the job - read-only unless the agent genuinely needs to open pull requests.\n\nExport it in your shell; do not commit it. This server can write to your repositories, so treat the token as production credentials."
+}

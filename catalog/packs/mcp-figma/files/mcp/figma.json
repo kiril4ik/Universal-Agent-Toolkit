@@ -1,0 +1,16 @@
+{
+  "name": "figma",
+  "title": "Figma Dev Mode MCP server",
+  "summary": "Reads frames, components, variables and styles from the file open in Figma, so spacing, colour and type come from the source rather than a screenshot.",
+  "url": "http://127.0.0.1:3845/mcp",
+  "transport": "http",
+  "requires": {
+    "apps": [
+      "Figma desktop app, running, with the target file open",
+      "A Dev or Full seat on a paid Figma plan (Dev Mode MCP is not available on all plans)",
+      "MCP server enabled in Figma: Preferences -> Enable local MCP server"
+    ]
+  },
+  "risk": "low",
+  "setup": "This is a LOCAL server that the Figma desktop app runs on port 3845. Nothing is installed by this toolkit.\n\nIf the connection fails, check in order: Figma desktop is running (not the browser), the file is open, the local MCP server is enabled in Preferences, and your seat type permits Dev Mode.\n\nRate limits apply to read tools. Batch your reads rather than polling."
+}

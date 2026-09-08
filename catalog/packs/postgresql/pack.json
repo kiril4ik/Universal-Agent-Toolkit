@@ -1,0 +1,23 @@
+{
+  "id": "postgresql",
+  "title": "PostgreSQL",
+  "tier": "optional",
+  "tags": [
+    "database"
+  ],
+  "detect": [
+    "postgresql"
+  ],
+  "summary": "PostgreSQL schema and query practice. Community rule (CC0).",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-cursorrules",
+      "files": [
+        {
+          "from": "rules/postgresql.mdc",
+          "to": "rules/POSTGRESQL.md"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "performance",
+  "title": "Performance optimization",
+  "tier": "optional",
+  "tags": [
+    "quality"
+  ],
+  "detect": [],
+  "summary": "Measure-first optimization across frontend, backend and database.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/performance-optimization.instructions.md",
+          "to": "rules/PERFORMANCE.md"
+        }
+      ]
+    }
+  ]
+}

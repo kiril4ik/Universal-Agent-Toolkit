@@ -1,0 +1,15 @@
+{
+  "id": "awesome-copilot",
+  "repo": "https://github.com/github/awesome-copilot.git",
+  "ref": "f95f1b4c3b153984e3da2744cef395c2355d0a44",
+  "license": "MIT",
+  "include": [
+    "instructions",
+    "LICENSE",
+    "README.md"
+  ],
+  "content_sha256": "f3a7f52e42a537b6e8dfc790d7ef244f0d8e431367795d4b8a0f5494ffa47199",
+  "fetched_at": "2026-09-08T11:45:04+00:00",
+  "notes": "GitHub's curated instruction library - 193 technology guides. The primary source of stack rules. Only the instructions/ directory is vendored; the full repository is ~200 MB.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}
