@@ -1,0 +1,17 @@
+{
+  "name": "claude-design",
+  "title": "Claude Design MCP server",
+  "summary": "Create, edit and sync designs and interactive prototypes without leaving the terminal. Work moves both ways: pull an existing design system in with /design-sync, or hand a design off to be implemented as code.",
+  "url": "https://api.anthropic.com/v1/design/mcp",
+  "transport": "http",
+  "scope": "user",
+  "requires": {
+    "apps": [
+      "Claude Code - /design-sync and /design-login are Claude Code commands; other agents cannot authenticate to this server",
+      "A paid Anthropic plan (Pro, Max, Team or Enterprise). Claude Design is in beta",
+      "One-time sign-in: run /design-login in Claude Code after adding the server"
+    ]
+  },
+  "risk": "low",
+  "setup": "Anthropic documents this server at USER scope, not project scope:\n\n    claude mcp add --scope user --transport http claude-design https://api.anthropic.com/v1/design/mcp\n\nPrefer that command. Claude Design is tied to your own Anthropic account and paid plan, so a project-scoped entry in a committed .mcp.json would hand every teammate a server they may not be entitled to use - and would still fail until each of them ran /design-login.\n\nThen, in Claude Code:\n\n    /design-login    authenticate the connection, once\n    /design-sync     pull the project's design system in, so generated designs start from existing components\n\nIf the connection fails, check the plan first: on a plan without Claude Design the server is reachable but returns nothing usable."
+}

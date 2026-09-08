@@ -1,0 +1,8 @@
+{
+  "id": "mcp-claude-design",
+  "title": "Claude Design MCP (Claude Code)",
+  "tier": "optional",
+  "tags": ["mcp", "design", "frontend", "claude-code"],
+  "detect": [],
+  "summary": "Create and edit designs from the terminal, synced with Claude Design. Claude Code only, and requires a paid Anthropic plan."
+}

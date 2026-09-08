@@ -30,6 +30,7 @@ class ServerSpec:
     setup: str
     url: str = ""
     transport: str = "stdio"
+    scope: str = "project"
 
     @classmethod
     def from_json(cls, path: Path) -> "ServerSpec":
@@ -44,6 +45,11 @@ class ServerSpec:
                 f"MCP spec {path} needs either 'command' (stdio) or 'url' (http/sse)"
             )
         req = d.get("requires") or {}
+        scope = d.get("scope", "project")
+        if scope not in ("project", "user"):
+            raise ToolkitError(
+                f"MCP spec {path}: scope must be 'project' or 'user', got {scope!r}"
+            )
         return cls(
             name=d["name"],
             title=d.get("title", d["name"]),
@@ -57,6 +63,7 @@ class ServerSpec:
             required_apps=list(req.get("apps") or []),
             risk=d.get("risk", "low"),
             setup=d.get("setup", ""),
+            scope=scope,
         )
 
     @property
@@ -109,6 +116,15 @@ def write_agent_mcp(
 ) -> None:
     """Merge our servers into this agent's project-scoped MCP config."""
     if not agent.writes_project_mcp or not specs:
+        return
+
+    # A user-scoped server belongs to an individual account, not to the
+    # repository. Writing it into a committed config would hand every
+    # teammate an entry that cannot work until they personally sign in -
+    # and the toolkit never writes outside the project, so the only honest
+    # option is to document it. manual_setup_notes() does that.
+    specs = [s for s in specs if s.scope != "user"]
+    if not specs:
         return
 
     cfg = agent.mcp
@@ -180,6 +196,14 @@ def manual_setup_notes(agents: list[Agent], specs: list[ServerSpec]) -> str:
         else:
             lines.append(f"Command: `{spec.command} {' '.join(spec.args)}`")
         lines.append("")
+        if spec.scope == "user":
+            lines.append(
+                "**Account-scoped: not written into this project's config.** "
+                "It belongs to your own account, so a committed entry would not "
+                "work for teammates. Add it yourself with the command below - "
+                "once per machine, not once per project."
+            )
+            lines.append("")
         if spec.required_env:
             lines.append("Required environment variables (set these yourself):")
             lines.append("")

@@ -356,6 +356,39 @@ class TestMcp(TempProject):
             ROOT / "catalog/packs/mcp-figma/files/mcp/figma.json")
         self.assertTrue(figma.needs_manual_setup)
 
+    def test_user_scoped_server_is_documented_not_written(self):
+        """Claude Design belongs to an account, not to a committed repo.
+
+        Writing it into .mcp.json would give every teammate an entry that
+        cannot work until they personally sign in - and the toolkit never
+        writes outside the project, so documenting is the only honest option.
+        """
+        spec = ServerSpec.from_json(
+            ROOT / "catalog/packs/mcp-claude-design/files/mcp/claude-design.json")
+        self.assertEqual(spec.scope, "user")
+
+        self.install(["claude-code"], packs=["mcp-claude-design"])
+        self.assertFalse(
+            (self.project / ".mcp.json").exists(),
+            "a user-scoped server must not be written into the project config")
+
+        notes = (self.project / ".agent-toolkit/mcp/README.md").read_text()
+        self.assertIn("claude-design", notes)
+        self.assertIn("--scope user", notes)
+
+    def test_project_scoped_servers_are_still_written(self):
+        self.install(["claude-code"], packs=["mcp-context7"])
+        doc = json.loads((self.project / ".mcp.json").read_text())
+        self.assertIn("context7", doc["mcpServers"])
+
+    def test_unknown_scope_is_rejected(self):
+        bad = self.project / "bad.json"
+        bad.parent.mkdir(parents=True, exist_ok=True)
+        bad.write_text(json.dumps(
+            {"name": "x", "url": "https://example.test/mcp", "scope": "global"}))
+        with self.assertRaises(ToolkitError):
+            ServerSpec.from_json(bad)
+
 
 # ----------------------------------------------------------------------
 class TestUninstall(TempProject):
