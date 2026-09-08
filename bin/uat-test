@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 # Run the toolkit's own test suite.
 set -euo pipefail
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Same symlink resolution as bin/uat - see the comment there.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  [ "${src:0:1}" = "/" ] || src="$dir/$src"
+done
+here="$(cd -P "$(dirname "$src")/.." && pwd)"
+
 exec python3 "$here/tests/test_uat.py" "$@"

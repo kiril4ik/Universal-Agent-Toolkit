@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 # Universal Agent Toolkit launcher. No install step, no dependencies.
 set -euo pipefail
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Resolve the symlink chain before locating src/. Putting a no-install CLI on
+# PATH normally means `ln -s .../bin/uat ~/.local/bin/uat`, and dirname of the
+# LINK would point at the link's directory - so the import failed with a
+# traceback rather than a usable error. `readlink -f` is not portable to
+# macOS's BSD readlink, hence the loop.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  [ "${src:0:1}" = "/" ] || src="$dir/$src"
+done
+here="$(cd -P "$(dirname "$src")/.." && pwd)"
 
 for py in python3 python; do
   if command -v "$py" >/dev/null 2>&1; then

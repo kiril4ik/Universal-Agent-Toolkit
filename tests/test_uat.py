@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -1426,6 +1427,44 @@ class TestEmbedding(TempProject):
         self.assertFalse(embedlib.is_embedded(ROOT))
 
 
+class TestLauncher(unittest.TestCase):
+    """bin/uat must work through a symlink.
+
+    Putting a no-install CLI on PATH means `ln -s .../bin/uat ~/.local/bin/uat`.
+    The launcher used to take dirname of the LINK, look for src/ next to it,
+    and fail with a Python traceback instead of a usable error.
+    """
+
+    def _run(self, exe, *args):
+        return subprocess.run(
+            [str(exe), *args], capture_output=True, text=True, timeout=120)
+
+    def test_runs_directly(self):
+        r = self._run(ROOT / "bin/uat", "catalog")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("packs", r.stdout)
+
+    def test_runs_through_absolute_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            link = Path(tmp) / "uat"
+            link.symlink_to(ROOT / "bin/uat")
+            r = self._run(link, "catalog")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("packs", r.stdout)
+
+    def test_runs_through_relative_symlink_chain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a, b = Path(tmp) / "a", Path(tmp) / "b"
+            a.mkdir(); b.mkdir()
+            (a / "uat").symlink_to(ROOT / "bin/uat")
+            # relative link, pointing at another link
+            (b / "uat").symlink_to(Path("..") / "a" / "uat")
+            r = self._run(b / "uat", "catalog")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("packs", r.stdout)
+
+
+# ----------------------------------------------------------------------
 class TestWorkflowShipped(TempProject):
     def test_workflow_phases_are_installed(self):
         self.install(["claude-code"])
