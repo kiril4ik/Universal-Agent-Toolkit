@@ -1,0 +1,6 @@
+{
+  "name": "figma",
+  "transport": "http",
+  "url": "https://mcp.figma.com/mcp",
+  "default": false
+}

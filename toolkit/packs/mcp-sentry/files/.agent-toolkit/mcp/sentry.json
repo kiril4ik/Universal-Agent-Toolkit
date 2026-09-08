@@ -1,0 +1,6 @@
+{
+  "name": "sentry",
+  "transport": "external",
+  "note": "Optional authenticated production-observability integration. Configure only for projects using Sentry.",
+  "default": false
+}

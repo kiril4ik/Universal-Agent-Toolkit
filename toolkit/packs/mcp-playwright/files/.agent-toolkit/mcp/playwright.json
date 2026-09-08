@@ -1,0 +1,10 @@
+{
+  "name": "playwright",
+  "transport": "stdio",
+  "runtime": "npm",
+  "package": "@playwright/mcp",
+  "version": "0.0.80",
+  "command_rel": ".agent-toolkit/runtime/node_modules/.bin/playwright-mcp",
+  "args": [],
+  "default": true
+}

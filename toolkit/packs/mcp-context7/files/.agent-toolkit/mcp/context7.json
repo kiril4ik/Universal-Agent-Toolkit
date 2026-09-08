@@ -1,0 +1,10 @@
+{
+  "name": "context7",
+  "transport": "stdio",
+  "runtime": "npm",
+  "package": "@upstash/context7-mcp",
+  "version": "4.0.5",
+  "command_rel": ".agent-toolkit/runtime/node_modules/.bin/context7-mcp",
+  "args": [],
+  "default": true
+}

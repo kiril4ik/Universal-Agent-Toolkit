@@ -1,0 +1,13 @@
+{
+  "name": "core",
+  "packs": [
+    "superpowers",
+    "karpathy-guidelines",
+    "data-safety",
+    "git-atomic",
+    "security",
+    "verification",
+    "mcp-playwright",
+    "mcp-context7"
+  ]
+}

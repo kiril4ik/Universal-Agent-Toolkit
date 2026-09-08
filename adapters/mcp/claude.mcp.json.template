@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "./.agent-toolkit/runtime/node_modules/.bin/playwright-mcp",
+      "args": []
+    },
+    "context7": {
+      "command": "./.agent-toolkit/runtime/node_modules/.bin/context7-mcp",
+      "args": []
+    },
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    }
+  }
+}

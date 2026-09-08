@@ -1,0 +1,597 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "superpowers",
+      "kind": "skill",
+      "label": "Superpowers",
+      "tags": [
+        "core"
+      ],
+      "default": true,
+      "description": "Disciplined brainstorming, planning, TDD, debugging, review and execution workflow.",
+      "detect": [],
+      "source": "https://github.com/obra/superpowers",
+      "version": "v6.3.0"
+    },
+    {
+      "id": "karpathy-guidelines",
+      "kind": "skill",
+      "label": "Karpathy Guidelines",
+      "tags": [
+        "core"
+      ],
+      "default": true,
+      "description": "Think-before-acting, simplicity, surgical changes and goal-driven execution.",
+      "detect": [],
+      "source": "https://github.com/emavv/karpathy-guidelines",
+      "version": "e02e9a451bed53fc661a82269e1a76f61af5ae3f"
+    },
+    {
+      "id": "data-safety",
+      "kind": "skill",
+      "label": "Data & Docker Safety",
+      "tags": [
+        "core",
+        "database",
+        "docker"
+      ],
+      "default": true,
+      "description": "Protect persistent data, volumes, migrations and backups.",
+      "detect": [],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "git-atomic",
+      "kind": "skill",
+      "label": "Git / Atomic Commits",
+      "tags": [
+        "core"
+      ],
+      "default": true,
+      "description": "Feature-scoped commits, verification, no AI co-author attribution.",
+      "detect": [],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "security",
+      "kind": "skill",
+      "label": "Security",
+      "tags": [
+        "core"
+      ],
+      "default": true,
+      "description": "Least privilege, trust boundaries, authz/input/secret safety.",
+      "detect": [],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "verification",
+      "kind": "skill",
+      "label": "Verification",
+      "tags": [
+        "core"
+      ],
+      "default": true,
+      "description": "Evidence before completion claims.",
+      "detect": [],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "ui-ux-pro-max",
+      "kind": "skill",
+      "label": "UI UX Pro Max",
+      "tags": [
+        "frontend",
+        "design"
+      ],
+      "default": false,
+      "description": "UI/UX design intelligence.",
+      "detect": [],
+      "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+      "version": "v2.15.0"
+    },
+    {
+      "id": "figma-skills",
+      "kind": "skill",
+      "label": "Figma Design Skills",
+      "tags": [
+        "frontend",
+        "design"
+      ],
+      "default": false,
+      "description": "Official Figma design-to-code/generate-design skills.",
+      "detect": [],
+      "source": "https://github.com/figma/mcp-server-guide",
+      "version": "ae7e5e5f80da20f1dd7445e0c6ae5ac58a5b0bce"
+    },
+    {
+      "id": "react-best-practices",
+      "kind": "skill",
+      "label": "Vercel React Best Practices",
+      "tags": [
+        "frontend",
+        "react",
+        "nextjs"
+      ],
+      "default": false,
+      "description": "React/Next.js performance rules.",
+      "detect": [],
+      "source": "https://github.com/vercel-labs/agent-skills",
+      "version": "063bee94c3f4df8453406c830b0a7df0f2860278"
+    },
+    {
+      "id": "web-interface-guidelines",
+      "kind": "rule",
+      "label": "Web Interface Guidelines",
+      "tags": [
+        "frontend",
+        "design"
+      ],
+      "default": false,
+      "description": "Accessibility, interaction, performance and UI implementation review guidance.",
+      "detect": [],
+      "source": "https://github.com/vercel-labs/web-interface-guidelines",
+      "version": "e3d624baaf29dc1fc645aff3e38f03e564d2d6b1"
+    },
+    {
+      "id": "php",
+      "kind": "rule",
+      "label": "PHP",
+      "tags": [
+        "backend",
+        "php"
+      ],
+      "default": false,
+      "description": "PHP project-local engineering rules.",
+      "detect": [
+        "php"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "laravel",
+      "kind": "rule",
+      "label": "Laravel",
+      "tags": [
+        "backend",
+        "php",
+        "laravel"
+      ],
+      "default": false,
+      "description": "Laravel project-local engineering rules.",
+      "detect": [
+        "laravel"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "symfony",
+      "kind": "rule",
+      "label": "Symfony",
+      "tags": [
+        "backend",
+        "php",
+        "symfony"
+      ],
+      "default": false,
+      "description": "Symfony project-local engineering rules.",
+      "detect": [
+        "symfony"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "javascript",
+      "kind": "rule",
+      "label": "JavaScript",
+      "tags": [
+        "frontend",
+        "node"
+      ],
+      "default": false,
+      "description": "JavaScript project-local engineering rules.",
+      "detect": [
+        "javascript"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "typescript",
+      "kind": "rule",
+      "label": "TypeScript",
+      "tags": [
+        "frontend",
+        "node"
+      ],
+      "default": false,
+      "description": "TypeScript project-local engineering rules.",
+      "detect": [
+        "typescript"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "react",
+      "kind": "rule",
+      "label": "React",
+      "tags": [
+        "frontend",
+        "react"
+      ],
+      "default": false,
+      "description": "React project-local engineering rules.",
+      "detect": [
+        "react"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "nextjs",
+      "kind": "rule",
+      "label": "Next.js",
+      "tags": [
+        "frontend",
+        "react",
+        "nextjs"
+      ],
+      "default": false,
+      "description": "Next.js project-local engineering rules.",
+      "detect": [
+        "nextjs"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "vue",
+      "kind": "rule",
+      "label": "Vue",
+      "tags": [
+        "frontend",
+        "vue"
+      ],
+      "default": false,
+      "description": "Vue project-local engineering rules.",
+      "detect": [
+        "vue"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "tailwind",
+      "kind": "rule",
+      "label": "Tailwind CSS",
+      "tags": [
+        "frontend",
+        "design"
+      ],
+      "default": false,
+      "description": "Tailwind CSS project-local engineering rules.",
+      "detect": [
+        "tailwind"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "python",
+      "kind": "rule",
+      "label": "Python",
+      "tags": [
+        "backend",
+        "python"
+      ],
+      "default": false,
+      "description": "Python project-local engineering rules.",
+      "detect": [
+        "python"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "fastapi",
+      "kind": "rule",
+      "label": "FastAPI",
+      "tags": [
+        "backend",
+        "python"
+      ],
+      "default": false,
+      "description": "FastAPI project-local engineering rules.",
+      "detect": [
+        "fastapi"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "django",
+      "kind": "rule",
+      "label": "Django",
+      "tags": [
+        "backend",
+        "python"
+      ],
+      "default": false,
+      "description": "Django project-local engineering rules.",
+      "detect": [
+        "django"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "node",
+      "kind": "rule",
+      "label": "Node.js",
+      "tags": [
+        "backend",
+        "node"
+      ],
+      "default": false,
+      "description": "Node.js project-local engineering rules.",
+      "detect": [
+        "node"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "nestjs",
+      "kind": "rule",
+      "label": "NestJS",
+      "tags": [
+        "backend",
+        "node"
+      ],
+      "default": false,
+      "description": "NestJS project-local engineering rules.",
+      "detect": [
+        "nestjs"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "go",
+      "kind": "rule",
+      "label": "Go",
+      "tags": [
+        "backend",
+        "go"
+      ],
+      "default": false,
+      "description": "Go project-local engineering rules.",
+      "detect": [
+        "go"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "rust",
+      "kind": "rule",
+      "label": "Rust",
+      "tags": [
+        "backend",
+        "rust"
+      ],
+      "default": false,
+      "description": "Rust project-local engineering rules.",
+      "detect": [
+        "rust"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "java",
+      "kind": "rule",
+      "label": "Java",
+      "tags": [
+        "backend",
+        "java"
+      ],
+      "default": false,
+      "description": "Java project-local engineering rules.",
+      "detect": [
+        "java"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "spring",
+      "kind": "rule",
+      "label": "Spring",
+      "tags": [
+        "backend",
+        "java"
+      ],
+      "default": false,
+      "description": "Spring project-local engineering rules.",
+      "detect": [
+        "spring"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "dotnet",
+      "kind": "rule",
+      "label": ".NET",
+      "tags": [
+        "backend",
+        "dotnet"
+      ],
+      "default": false,
+      "description": ".NET project-local engineering rules.",
+      "detect": [
+        "dotnet"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "postgresql",
+      "kind": "rule",
+      "label": "PostgreSQL",
+      "tags": [
+        "database"
+      ],
+      "default": false,
+      "description": "PostgreSQL project-local engineering rules.",
+      "detect": [
+        "postgresql"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "mysql",
+      "kind": "rule",
+      "label": "MySQL",
+      "tags": [
+        "database"
+      ],
+      "default": false,
+      "description": "MySQL project-local engineering rules.",
+      "detect": [
+        "mysql"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "redis",
+      "kind": "rule",
+      "label": "Redis",
+      "tags": [
+        "database",
+        "cache"
+      ],
+      "default": false,
+      "description": "Redis project-local engineering rules.",
+      "detect": [
+        "redis"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "docker",
+      "kind": "rule",
+      "label": "Docker",
+      "tags": [
+        "infra",
+        "docker"
+      ],
+      "default": false,
+      "description": "Docker project-local engineering rules.",
+      "detect": [
+        "docker"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "nginx",
+      "kind": "rule",
+      "label": "Nginx",
+      "tags": [
+        "infra"
+      ],
+      "default": false,
+      "description": "Nginx project-local engineering rules.",
+      "detect": [
+        "nginx"
+      ],
+      "source": null,
+      "version": null
+    },
+    {
+      "id": "mcp-playwright",
+      "kind": "mcp",
+      "label": "Playwright MCP",
+      "tags": [
+        "core",
+        "browser",
+        "frontend"
+      ],
+      "default": true,
+      "description": "Browser/E2E/visual verification.",
+      "detect": [],
+      "source": "https://github.com/microsoft/playwright-mcp",
+      "version": "0.0.80"
+    },
+    {
+      "id": "mcp-context7",
+      "kind": "mcp",
+      "label": "Context7 MCP",
+      "tags": [
+        "core",
+        "docs"
+      ],
+      "default": true,
+      "description": "Version-aware library/framework documentation.",
+      "detect": [],
+      "source": "https://github.com/upstash/context7",
+      "version": "4.0.5"
+    },
+    {
+      "id": "mcp-figma",
+      "kind": "mcp",
+      "label": "Figma MCP",
+      "tags": [
+        "frontend",
+        "design"
+      ],
+      "default": false,
+      "description": "Official Figma remote MCP.",
+      "detect": [],
+      "source": "https://mcp.figma.com/mcp",
+      "version": null
+    },
+    {
+      "id": "mcp-github",
+      "kind": "mcp",
+      "label": "GitHub MCP",
+      "tags": [
+        "optional",
+        "github"
+      ],
+      "default": false,
+      "description": "Repository/issues/PR integration where native GitHub tools are insufficient.",
+      "detect": [],
+      "source": "https://github.com/github/github-mcp-server",
+      "version": null
+    },
+    {
+      "id": "mcp-sentry",
+      "kind": "mcp",
+      "label": "Sentry MCP",
+      "tags": [
+        "optional",
+        "observability"
+      ],
+      "default": false,
+      "description": "Production error/trace context for Sentry projects.",
+      "detect": [],
+      "source": null,
+      "version": null
+    }
+  ]
+}

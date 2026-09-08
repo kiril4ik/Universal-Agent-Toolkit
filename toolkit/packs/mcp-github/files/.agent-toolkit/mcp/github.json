@@ -1,0 +1,6 @@
+{
+  "name": "github",
+  "transport": "external",
+  "note": "Use official GitHub MCP/native GitHub integration with least privilege; authentication is project/user specific.",
+  "default": false
+}
