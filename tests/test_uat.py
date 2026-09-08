@@ -511,7 +511,7 @@ class TestSkillPrecedence(TempProject):
     def test_every_phase_file_is_numbered_contiguously(self):
         wf = ROOT / "catalog/workflow"
         nums = sorted(f.name[:2] for f in wf.glob("[0-9][0-9]-*.md"))
-        self.assertEqual(nums, [f"{i:02d}" for i in range(13)])
+        self.assertEqual(nums, [f"{i:02d}" for i in range(14)])
 
     def test_skills_named_by_phases_are_actually_vendored(self):
         """A phase must not reference a skill the toolkit cannot install."""
@@ -734,6 +734,63 @@ class TestReportedRegressions(TempProject):
         mount = self.project / ".agents/skills"
         self.assertTrue(mount.is_symlink() or mount.is_dir())
         self.assertTrue((mount / "brainstorming/SKILL.md").exists())
+
+
+class TestProductAcceptance(unittest.TestCase):
+    """Per-task verification existed; product acceptance did not.
+
+    docs/screens.md defined the user journeys and nothing downstream ever
+    exercised them, so a rendering dashboard could pass while password reset
+    was broken. Phase 13 closes that; these tests keep it closed.
+    """
+
+    WF = ROOT / "catalog/workflow"
+
+    def test_acceptance_phase_exists(self):
+        self.assertTrue((self.WF / "13-acceptance.md").is_file())
+
+    def test_acceptance_consumes_the_flows_defined_in_phase_03(self):
+        """The chain screens.md -> acceptance was the missing link."""
+        a = (self.WF / "13-acceptance.md").read_text()
+        self.assertIn("docs/screens.md", a)
+        self.assertIn("docs/business-logic.md", a)
+
+    def test_acceptance_rejects_a_green_suite_as_proof(self):
+        a = (self.WF / "13-acceptance.md").read_text()
+        self.assertIn("not acceptance", a)
+        self.assertIn("NOT VERIFIED", a)
+
+    def test_acceptance_names_the_flows_that_rot(self):
+        a = (self.WF / "13-acceptance.md").read_text().lower()
+        for flow in ("password reset", "permission", "payment", "sign-out"):
+            self.assertIn(flow, a, f"acceptance does not mention {flow}")
+
+    def test_verification_no_longer_accepts_a_screenshot_for_a_ui_change(self):
+        v = (ROOT / "catalog/core/VERIFICATION.md").read_text()
+        ui_row = [ln for ln in v.splitlines() if ln.startswith("| A UI change")]
+        self.assertEqual(len(ui_row), 1)
+        self.assertNotIn("screenshot or browser check", ui_row[0])
+        self.assertIn("Rendered is not the same as works", v)
+
+    def test_verification_requires_observing_through_a_second_path(self):
+        v = " ".join((ROOT / "catalog/core/VERIFICATION.md").read_text().split())
+        self.assertIn("different path than the one that caused it", v)
+
+    def test_execute_hands_off_to_acceptance(self):
+        e = (self.WF / "12-execute.md").read_text()
+        self.assertIn("13", e)
+        self.assertIn("not mean the journeys work", e)
+
+    def test_acceptance_is_in_the_phase_table_and_the_cli(self):
+        from uat.cli import PHASES
+        nums = [n for n, _, _, _ in PHASES]
+        self.assertIn("13", nums)
+        self.assertIn("13-acceptance.md", (self.WF / "README.md").read_text())
+
+    def test_session_hook_counts_the_acceptance_phase(self):
+        hook = (ROOT / "catalog/packs/session-reminder/files/hooks/"
+                "session-start.sh").read_text()
+        self.assertIn("11 12 13", hook, "hook stops counting before acceptance")
 
 
 class TestApprovalGateConsistency(unittest.TestCase):

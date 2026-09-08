@@ -416,6 +416,7 @@ PHASES = [
     ("10", "plan", "docs/superpowers/plans", True),
     ("11", "GATE", "", True),
     ("12", "execute", "", True),
+    ("13", "acceptance", "docs/acceptance.md", True),
 ]
 
 # Template scaffolding that carries no information on its own.

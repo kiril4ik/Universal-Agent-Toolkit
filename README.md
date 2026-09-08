@@ -222,6 +222,7 @@ your Cursor config. Use `--replace` to start over deliberately.
 | 10 | plan | **`writing-plans`** |
 | 11 | **gate** | — |
 | 12 | execute | **`subagent-driven-development`** |
+| 13 | **acceptance** | Playwright MCP |
 
 **Design runs after architecture, deliberately.** Screens & flows (03) give
 architecture what it needs early; visual design (08) then works against a
@@ -240,8 +241,15 @@ is the "Precedence" section of `workflow/README.md`, and tests assert it covers
 every known conflict. **No vendored file is edited to achieve this.**
 
 Triage picks the depth: a one-line fix runs discovery and stops; a new product
-runs everything. **Phase 11 is never skipped** — nothing is implemented until
-the artifacts are checked against each other and a human approves.
+runs everything.
+
+**Two bookends never scale away.** Phase 11: nothing is implemented until a
+human approves — what you present there scales with the class, the stop does
+not. Phase 13: nothing is called finished until every journey defined in phase
+03 has been performed against a running system. "All tests pass" is not
+acceptance; the tests were written by the agent that wrote the code, and they
+cover tasks rather than journeys. Anything not exercised is reported as NOT
+VERIFIED rather than assumed.
 
 ### How you actually start it
 

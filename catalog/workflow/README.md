@@ -29,6 +29,11 @@ This holds at every class. What you *present* for approval scales - a Task
 gets a few sentences, a Product gets the coherence review - but the stop
 itself does not scale away.
 
+And at the other end: **"the tests pass" is not the finish line.** Phase 13
+performs every journey defined in phase 03 against a running system. Tests
+written by the agent that wrote the code, covering tasks rather than journeys,
+can all pass while password reset is broken.
+
 ## Triage first
 
 Read `00-triage.md` and classify. Do not run twelve phases on a one-line fix.
@@ -36,7 +41,7 @@ Read `00-triage.md` and classify. Do not run twelve phases on a one-line fix.
 | Class | What it is | Phases |
 |---|---|---|
 | **Task** | a bounded change to a flow already in this repo | `01`, short design, **`11`**, implement |
-| **Feature** | a new capability inside an existing product | `01` `02` `03` `06` `10` **`11`** `12` |
+| **Feature** | a new capability inside an existing product | `01` `02` `03` `06` `10` **`11`** `12` `13` |
 | **Product** | a new project, or a structural change | all |
 
 Announce the classification and what you are skipping, with the reason.
@@ -63,6 +68,7 @@ approval itself is never skipped. See `11-gate.md`.
 | 10 | [Plan](10-plan.md) | `docs/superpowers/plans/…` | **`writing-plans`** |
 | 11 | [Gate](11-gate.md) | go / no-go | — |
 | 12 | [Execute](12-execute.md) | working code | **`subagent-driven-development`** |
+| 13 | [Acceptance](13-acceptance.md) | `docs/acceptance.md` | Playwright MCP |
 
 ### Why design comes after architecture
 
@@ -181,6 +187,9 @@ missing or stale. Read `.agent-toolkit/reports/` before re-planning anything.
 | "Design first, we can adjust the data model later" | That is the rework this ordering exists to prevent. |
 | "This is small, I'll skip triage" | Triage is what makes it small. It takes one line. |
 | "The gate is a formality, the plan is obviously right" | The gate is where cheap fixes are still cheap. |
+| "All tests pass, so it works" | Your tests cover tasks. Phase 13 covers journeys. |
+| "I screenshotted the page, it renders" | Rendered is not works. Drive the flow. |
+| "I did not test that flow but it should be fine" | Then it is NOT VERIFIED. Say so in the table. |
 
 ## Reporting
 

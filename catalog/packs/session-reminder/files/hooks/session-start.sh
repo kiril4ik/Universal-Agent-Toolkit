@@ -35,7 +35,7 @@ fi
 # phase, and counting it as done is a route to premature completion.
 done_count=0
 next_phase=""
-for n in 01 02 03 04 05 06 07 08 09 10 11 12; do
+for n in 01 02 03 04 05 06 07 08 09 10 11 12 13; do
   f="$(ls "$tk/reports/$n-"*.md 2>/dev/null | head -1)"
   if [ -n "$f" ] && [ "$(wc -c <"$f" 2>/dev/null || echo 0)" -ge 150 ]; then
     done_count=$((done_count + 1))

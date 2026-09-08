@@ -257,7 +257,7 @@ def preserve_user_tail(existing: str, new_generated: str) -> str:
 # can be given directly (see START-HERE.md).
 
 _PLAN_COMMAND = """---
-description: Run the project planning workflow (triage -> ... -> gate)
+description: Run the project workflow (triage -> plan -> gate -> build -> acceptance)
 argument-hint: [what you want to build]
 ---
 
@@ -284,6 +284,10 @@ Follow it exactly, in order:
    Do not hand-write rules a pack already provides.
 7. **Stop at the gate** (`workflow/11-gate.md`). Present the plan and wait for
    explicit approval. Do not begin implementing in the same message.
+8. **After implementing, run acceptance** (`workflow/13-acceptance.md`). A
+   green test suite is not the finish line: perform every journey from
+   `docs/screens.md` against a running system and report anything you did not
+   exercise as NOT VERIFIED.
 
 ## Skills belong to phases, not to this command
 
@@ -292,6 +296,7 @@ Do not invoke skills up front. Each phase names the skill it uses:
 - phase 02 and 06 -> `brainstorming` (technique only)
 - phase 10 -> `writing-plans` (it owns the plan format and location)
 - phase 12 -> `subagent-driven-development` or `executing-plans`
+- phase 13 -> the Playwright MCP, to drive journeys rather than screenshot them
 - throughout implementation -> `test-driven-development`,
   `systematic-debugging`, `verification-before-completion`
 
@@ -372,7 +377,9 @@ resuming - they are the project's decision log.
 | 08 | architecture | docs/architecture.md |
 | 09 | environments | Docker + deploy scripts |
 | 10 | implementation plan | docs/plan.md |
-| 11 | **gate** | go / no-go - **never skipped** |
+| 11 | **gate** | go / no-go - approval never skipped |
+| 12 | execute | working code |
+| 13 | **acceptance** | every journey performed against a running system |
 
 Triage decides how many of these apply. A one-line fix runs 01 and stops; a
 new product runs everything.

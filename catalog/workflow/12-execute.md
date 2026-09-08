@@ -62,3 +62,9 @@ present the integration options and execute the choice.
 
 Working, verified code, and `.agent-toolkit/reports/12-execute.md` recording
 what was built, what deviated from the plan and why, and what remains.
+
+## Next
+
+Phase 13. **Do not report the product as finished yet.** A green test suite
+means the tasks were completed; it does not mean the journeys work. Acceptance
+performs them.

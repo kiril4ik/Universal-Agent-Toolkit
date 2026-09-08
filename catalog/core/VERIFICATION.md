@@ -19,13 +19,37 @@ relevant output:
 | A bug fix | a test that fails before the fix and passes after |
 | Types / interfaces | the type checker or compiler |
 | Anything at all | the linter and formatter, if the project has them |
-| A UI change | the app, and look at it - screenshot or browser check |
+| A UI change | drive the flow in a browser - not a screenshot (see below) |
 | A migration | the migration up, then the app, then the rollback |
 | A Dockerfile / compose file | a real build and start, then a health check |
 | A deploy script | a dry run, then a run against a disposable target |
 
 If the project has no test for what you changed, say so explicitly rather
 than implying coverage exists.
+
+## Rendered is not the same as works
+
+A screenshot proves a page rendered. It proves nothing about whether the
+thing the page is *for* actually happens. A convincing dashboard can sit on
+top of a broken password reset, a permission check that never runs, or a
+payment retry that silently drops.
+
+So for anything a user does, not just looks at:
+
+**Drive the flow, do not photograph it.** Fill the form, submit it, follow the
+redirect, and check the result. The Playwright MCP exists for this.
+
+**Observe the effect through a different path than the one that caused it.**
+Creating a record through the UI and then seeing it in the UI can pass on
+client-side state alone. Reload the page, open a fresh session, or query the
+database. If the data does not survive a reload, it was never saved.
+
+**Test the denial, not only the permission.** "The admin can see it" is half a
+check. The half that matters for security is that the non-admin cannot.
+
+**Exercise the unhappy path at least once.** Wrong password, expired token,
+declined card, duplicate submit, network failure mid-flow. These are where
+real products break, and they are never the path you demo.
 
 ## Honest reporting
 

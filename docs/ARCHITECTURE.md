@@ -347,3 +347,38 @@ probe tests the project directory rather than creating `.agent-toolkit/`.
 The deploy script had the mirror-image bug: its dry run `cd`-ed into a release
 directory it had deliberately not created. Commands are now printed instead of
 executed when the release path is absent.
+
+## Acceptance is separate from verification
+
+`core/VERIFICATION.md` governs a *change*: did this edit do what it claimed,
+and did you run something that proves it. That is per-task, and it was the only
+thing the workflow enforced.
+
+Nothing consumed the user journeys. `docs/screens.md` fed phase 08 (design) and
+phase 10 (plan) and then stopped, so a product could reach the end of phase 12
+with a green suite while password reset, permission denial or payment retry had
+never once been performed. The tests were written by the agent that wrote the
+code, against the same understanding, and they cover tasks rather than
+journeys - which is exactly the blind spot they cannot see.
+
+Phase 13 closes the loop back to phase 03. Its checklist is not invented: every
+journey in `docs/screens.md` must appear in the acceptance table, and a missing
+row is a failed acceptance rather than an oversight.
+
+Four rules make an exercise count, and they live in `VERIFICATION.md` because
+they apply to ordinary changes too:
+
+1. **Drive the flow, do not photograph it.** A screenshot proves a page
+   rendered, nothing more.
+2. **Observe through a different path than the one that caused it.** UI ->
+   UI can pass on client-side state; reload, fresh session or a database query
+   proves persistence.
+3. **Test the denial, not only the permission.**
+4. **Take the unhappy path at least once.** Expired token, declined card,
+   duplicate submit - never the path anyone demos.
+
+The report's most important column is the one that says NOT VERIFIED. A table
+with gaps is honest; a table with no gaps because the gaps were omitted is the
+failure this phase exists to prevent. The phase file says so explicitly, and
+also states its own ceiling: it proves the journeys you defined were performed,
+not that the product is correct.
