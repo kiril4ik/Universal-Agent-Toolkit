@@ -529,6 +529,81 @@ class TestVendorReachability(unittest.TestCase):
         self.assertEqual(orphans, {}, f"vendored but no pack installs it: {orphans}")
 
 
+class TestSessionHook(TempProject):
+    """The hook is what turns 'available' into 'actually used'."""
+
+    def install_hook(self, force=False):
+        return self.install(["claude-code"],
+                            packs=["superpowers", "session-reminder"], force=force)
+
+    def test_hook_script_is_installed_and_executable(self):
+        self.install_hook()
+        script = self.project / ".agent-toolkit/hooks/session-start.sh"
+        self.assertTrue(script.is_file())
+        self.assertTrue(os.access(script, os.X_OK))
+
+    def test_hook_is_registered_in_settings(self):
+        self.install_hook()
+        doc = json.loads((self.project / ".claude/settings.json").read_text())
+        entries = doc["hooks"]["SessionStart"]
+        self.assertTrue(any(".agent-toolkit" in json.dumps(e) for e in entries))
+
+    def test_existing_user_settings_survive(self):
+        self.write(".claude/settings.json", json.dumps(
+            {"permissions": {"allow": ["Bash(npm test)"]},
+             "hooks": {"SessionStart": [
+                 {"matcher": "startup",
+                  "hooks": [{"type": "command", "command": "echo mine"}]}]}}))
+        self.install_hook()
+        doc = json.loads((self.project / ".claude/settings.json").read_text())
+        self.assertEqual(doc["permissions"]["allow"], ["Bash(npm test)"])
+        self.assertEqual(len(doc["hooks"]["SessionStart"]), 2)
+
+    def test_uninstall_removes_ours_and_keeps_theirs(self):
+        self.write(".claude/settings.json", json.dumps(
+            {"hooks": {"SessionStart": [
+                {"matcher": "startup",
+                 "hooks": [{"type": "command", "command": "echo mine"}]}]}}))
+        self.install_hook()
+        inst.uninstall(self.project, self.registry, report=Report())
+        doc = json.loads((self.project / ".claude/settings.json").read_text())
+        entries = doc["hooks"]["SessionStart"]
+        self.assertEqual(len(entries), 1)
+        self.assertIn("echo mine", json.dumps(entries))
+
+    def test_reinstall_does_not_duplicate_the_hook(self):
+        self.install_hook()
+        self.install_hook()
+        doc = json.loads((self.project / ".claude/settings.json").read_text())
+        ours = [e for e in doc["hooks"]["SessionStart"]
+                if ".agent-toolkit" in json.dumps(e)]
+        self.assertEqual(len(ours), 1)
+
+    def test_hook_output_names_the_gate_and_safety(self):
+        import subprocess
+        self.install_hook()
+        script = self.project / ".agent-toolkit/hooks/session-start.sh"
+        out = subprocess.run(["bash", str(script)], capture_output=True, text=True,
+                             env={**os.environ,
+                                  "CLAUDE_PROJECT_DIR": str(self.project)})
+        self.assertEqual(out.returncode, 0)
+        for expected in ("11-gate.md", "SAFETY.md", "00-triage.md", "workflow"):
+            self.assertIn(expected, out.stdout, expected)
+
+    def test_hook_is_silent_outside_a_configured_project(self):
+        import subprocess
+        self.install_hook()
+        script = self.project / ".agent-toolkit/hooks/session-start.sh"
+        out = subprocess.run(["bash", str(script)], capture_output=True, text=True,
+                             env={**os.environ, "CLAUDE_PROJECT_DIR": str(self.tmp)})
+        self.assertEqual(out.returncode, 0)
+        self.assertEqual(out.stdout.strip(), "")
+
+    def test_agents_without_hook_support_get_none(self):
+        self.install(["cursor"], packs=["superpowers", "session-reminder"])
+        self.assertFalse((self.project / ".claude").exists())
+
+
 class TestEmbedding(TempProject):
     """Embedding must keep the project self-contained without adding folders."""
 

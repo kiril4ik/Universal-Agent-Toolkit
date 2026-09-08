@@ -12,6 +12,7 @@
     "docker",
     "playwright",
     "deploy-ubuntu",
-    "docker-local"
+    "docker-local",
+    "session-reminder"
   ]
 }

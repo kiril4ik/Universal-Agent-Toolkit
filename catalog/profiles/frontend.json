@@ -1,9 +1,15 @@
 {
   "name": "frontend",
   "description": "Core plus interface quality, accessibility, design intelligence and browser verification.",
-  "extends": ["core"],
+  "extends": [
+    "core"
+  ],
   "packs": [
-    "web-interface-guidelines", "accessibility", "ui-ux-pro-max",
-    "design-system", "mcp-playwright"
+    "web-interface-guidelines",
+    "accessibility",
+    "ui-ux-pro-max",
+    "design-system",
+    "mcp-playwright",
+    "session-reminder"
   ]
 }

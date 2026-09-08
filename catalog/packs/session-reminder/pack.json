@@ -1,0 +1,8 @@
+{
+  "id": "session-reminder",
+  "title": "Session-start workflow reminder (hook)",
+  "tier": "recommended",
+  "tags": ["process"],
+  "detect": [],
+  "summary": "Injects the workflow and safety rules into context at the start of every session, so the agent cannot simply not notice them. Registers a SessionStart hook in the tool's settings."
+}

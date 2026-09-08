@@ -78,7 +78,15 @@ class Agent:
                 out.append(surface["path"])
         if self.writes_project_mcp:
             out.append(self.mcp["path"])
+        hooks = self.surfaces.get("hooks") or {}
+        if hooks.get("scope") == "project" and hooks.get("path"):
+            out.append(hooks["path"])
         return out
+
+    @property
+    def supports_hooks(self) -> bool:
+        h = self.surfaces.get("hooks") or {}
+        return h.get("scope") == "project" and bool(h.get("path"))
 
 
 class Registry:

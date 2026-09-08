@@ -200,6 +200,70 @@ def _install_pack_files(
                 copy_file(f, dest / rel, force=force, report=report)
 
 
+def write_agent_hooks(
+    agent: Agent, project: Path, *, enabled: bool, force: bool, report: Report
+) -> bool:
+    """Register our SessionStart hook in the agent's settings, merging safely.
+
+    Settings files usually contain the user's own configuration, so this only
+    adds our entry and leaves everything else untouched.
+    """
+    import json
+
+    cfg = agent.surfaces.get("hooks") or {}
+    if not enabled or cfg.get("scope") != "project" or not cfg.get("path"):
+        return False
+
+    script = f"$CLAUDE_PROJECT_DIR/{TOOLKIT_DIR}/hooks/session-start.sh"
+    if not (project / TOOLKIT_DIR / "hooks" / "session-start.sh").is_file():
+        return False
+
+    path = project / cfg["path"]
+    if path.exists():
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            report.record(CONFLICT, path, "not valid JSON; hook not registered")
+            return False
+        if not isinstance(doc, dict):
+            report.record(CONFLICT, path, "not a JSON object; hook not registered")
+            return False
+    else:
+        doc = {}
+
+    key, event = cfg.get("key", "hooks"), cfg.get("event", "SessionStart")
+    hooks = doc.setdefault(key, {})
+    if not isinstance(hooks, dict):
+        report.record(CONFLICT, path, f"existing '{key}' is not an object; kept")
+        return False
+    entries = hooks.setdefault(event, [])
+    if not isinstance(entries, list):
+        report.record(CONFLICT, path, f"existing '{event}' is not a list; kept")
+        return False
+
+    ours = {
+        "matcher": cfg.get("matcher", "startup|clear|compact"),
+        "hooks": [{"type": "command", "command": script}],
+    }
+    for existing in entries:
+        if json.dumps(existing, sort_keys=True) == json.dumps(ours, sort_keys=True):
+            report.record(SAME, path, "SessionStart hook")
+            return True
+        if TOOLKIT_DIR in json.dumps(existing):
+            if not force:
+                report.record(CONFLICT, path, "a different toolkit hook exists; kept")
+                return False
+            entries.remove(existing)
+            break
+
+    entries.append(ours)
+    if not report.dry_run:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(dumps_json(doc), encoding="utf-8")
+    report.record(ADD, path, "SessionStart hook")
+    return True
+
+
 def _collect_mcp_specs(dest_root: Path) -> list[ServerSpec]:
     mcp_dir = dest_root / "mcp"
     if not mcp_dir.exists():
@@ -257,6 +321,10 @@ def execute(
     )
 
     uat_cmd = render.uat_invocation(project, toolkit_root)
+    hook_script = dest / "hooks" / "session-start.sh"
+    if hook_script.is_file() and not dry_run:
+        hook_script.chmod(0o755)
+
     rules = _installed_rules(dest)
     skills = _installed_skills(dest)
     specs = _collect_mcp_specs(dest)
@@ -327,6 +395,18 @@ def execute(
             cmd_dir = project / cmd_surface["path"]
             for filename, body in render.claude_commands(ctx).items():
                 write_text(cmd_dir / filename, body, force=force, report=report)
+
+        # session-start hook - makes the rules unmissable rather than findable
+        if write_agent_hooks(
+            agent, project,
+            enabled=(dest / "hooks" / "session-start.sh").is_file(),
+            force=force, report=report,
+        ):
+            result.notes.append(
+                f"{agent.name}: a SessionStart hook was registered in "
+                f"{agent.surfaces['hooks']['path']}. Your tool will ask you to "
+                "approve it the first time - that prompt is expected."
+            )
 
         # mcp
         write_agent_mcp(agent, project, specs, force=force, report=report)
@@ -510,6 +590,12 @@ def uninstall(
             target = project / rel
             touched_dirs.add(target.parent)
 
+            # Settings files hold the user's own config: remove only our hook.
+            hooks_cfg = agent.surfaces.get("hooks") or {}
+            if hooks_cfg.get("path") and rel == hooks_cfg["path"]:
+                _strip_our_hook(target, hooks_cfg, report=report)
+                continue
+
             # MCP configs are shared with servers we know nothing about:
             # surgically remove only our entries.
             if mcp_path and rel == mcp_path:
@@ -564,6 +650,47 @@ def uninstall(
             except OSError:
                 break
             d = d.parent
+
+
+def _strip_our_hook(path: Path, cfg: dict, *, report: Report) -> None:
+    """Remove our SessionStart hook, keeping any other settings intact."""
+    import json
+
+    if not path.is_file():
+        return
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        report.record(CONFLICT, path, "not valid JSON; left untouched")
+        return
+    if not isinstance(doc, dict):
+        return
+
+    key, event = cfg.get("key", "hooks"), cfg.get("event", "SessionStart")
+    entries = (doc.get(key) or {}).get(event)
+    if not isinstance(entries, list):
+        return
+
+    kept = [e for e in entries if TOOLKIT_DIR not in json.dumps(e)]
+    if len(kept) == len(entries):
+        return
+
+    if kept:
+        doc[key][event] = kept
+    else:
+        doc[key].pop(event, None)
+        if not doc[key]:
+            doc.pop(key, None)
+
+    if not doc:
+        if not report.dry_run:
+            path.unlink()
+        report.record("skip", path, "removed (only held our hook)")
+        return
+
+    if not report.dry_run:
+        path.write_text(dumps_json(doc), encoding="utf-8")
+    report.record("skip", path, "removed our hook, kept other settings")
 
 
 def _strip_our_mcp_servers(

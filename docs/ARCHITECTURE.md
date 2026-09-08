@@ -186,3 +186,36 @@ capability that cannot be reached. `uat doctor` fails when a vendored skill
 directory has no pack mapping it, and `uat catalog --unmapped` lists vendored
 rule documents with no pack - expected for the broad libraries, which are
 mapped on demand.
+
+## Making the rules unmissable
+
+A rule an agent has to go looking for is a rule it will sometimes skip. The
+toolkit therefore ships four layers of increasing force:
+
+| Layer | Mechanism | Strength |
+|---|---|---|
+| passive | `CLAUDE.md` -> `CORE.md` -> workflow | agent must follow a pointer |
+| active | `/plan` commands, `START-HERE.md` | user must invoke |
+| enforced | `SessionStart` hook | injected every session |
+| verifiable | `uat workflow` | human can check |
+
+The hook is the one that changes outcomes, and it is the mechanism Superpowers
+uses for exactly this reason. We vendor its `skills/` but not its `hooks/`, so
+the `session-reminder` pack supplies our own: a short script that prints the
+non-negotiables plus live workflow state, registered in the agent's settings.
+
+Design constraints on that script:
+
+- **Never blocks a session.** Every failure path exits 0 with no output; a
+  directory that is not a configured project produces silence.
+- **Reads live state.** Mode and phase progress come from `project.json` and
+  `reports/`, so the banner reflects reality rather than install-time guesses.
+- **Stays short.** It is prepended to every session; length is a recurring
+  cost paid forever.
+- **Merges, never replaces.** Settings files hold the user's own hooks and
+  permissions. Install adds one entry; uninstall removes exactly that entry
+  and deletes the file only if nothing else remains.
+
+`surfaces.hooks` in the agent registry declares which agents support this.
+Agents that do not simply skip the step - no `.claude/` directory appears for
+a Cursor-only install.

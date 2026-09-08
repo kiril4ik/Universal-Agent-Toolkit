@@ -118,6 +118,74 @@ my-app/
 Skills are **symlinked**, not copied, so nothing is duplicated on disk.
 Use `--copy` on filesystems without symlink support.
 
+## Using it after installing
+
+Four layers, weakest to strongest. Installing gives you all four.
+
+**1. Passive — the agent reads it on its own.** `CLAUDE.md` (or `AGENTS.md`,
+`.cursor/rules/`) is auto-loaded and points at `.agent-toolkit/CORE.md`, which
+routes to the workflow, the safety rules and the stack rules. This works, but
+relies on the agent choosing to follow a pointer.
+
+**2. Active — you trigger it.** With Claude Code:
+
+```
+/plan add multi-tenant billing      start the workflow at triage
+/plan-status                        progress, without advancing
+/plan-resume                        continue where it stopped
+```
+
+With any other agent, paste the prompt from `.agent-toolkit/START-HERE.md`:
+
+> Read `.agent-toolkit/workflow/README.md` and run the planning workflow.
+> Start with triage, tell me the classification and which phases apply, then
+> work through them in order. Stop at the gate for my approval.
+
+**3. Enforced — the `session-reminder` hook.** Installed by every profile. It
+registers a `SessionStart` hook that injects the non-negotiables into context
+at the start of *every* session: run triage first, no implementation before the
+gate, read `SAFETY.md` before touching data, verify before claiming done. It
+also reports how many phases are complete and which is next.
+
+This is the layer that makes the difference between rules being *available* and
+rules being *used* — it is the same mechanism Superpowers itself uses. Your
+tool will ask you to approve the hook the first time; that prompt is expected.
+
+```bash
+uat install --project . --agent claude-code --add session-reminder
+```
+
+**4. Verifiable — you can check.** `uat workflow --project .` shows which
+phases have reports and what comes next. Progress lives in
+`.agent-toolkit/reports/`, so it survives across sessions, agents and machines.
+
+### A normal session
+
+```bash
+uat install --project ~/code/my-app --agent claude-code --embed   # once
+cd ~/code/my-app
+```
+
+Then, in the agent: `/plan build a client portal with invoicing`
+
+It classifies the work, runs discovery, and asks its questions. Somewhere
+around phase 04 it decides the stack; at phase 05 it runs
+`uat install --add <pack>` so the rules for that stack land in the project.
+At phase 10 it hands to `writing-plans`. At phase 11 it stops and waits for
+you. Only after you approve does phase 12 start writing code.
+
+Between sessions, `/plan-resume` picks up from the reports.
+
+### If the agent ignores it anyway
+
+Check, in order:
+
+1. `uat status --project .` — is it actually installed?
+2. Is `session-reminder` in the pack list? Add it if not.
+3. Did you approve the hook when your tool prompted?
+4. For non-Claude tools, is the instruction file the one your tool actually
+   reads? `uat agents --show <id>` lists the paths it uses.
+
 ## Supported agents
 
 Claude Code, Cursor, Codex, GitHub Copilot / VS Code, Gemini CLI, Windsurf,
