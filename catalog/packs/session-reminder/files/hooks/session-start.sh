@@ -37,7 +37,18 @@ done_count=0
 next_phase=""
 for n in 01 02 03 04 05 06 07 08 09 10 11 12 13; do
   f="$(ls "$tk/reports/$n-"*.md 2>/dev/null | head -1)"
-  if [ -n "$f" ] && [ "$(wc -c <"$f" 2>/dev/null || echo 0)" -ge 150 ]; then
+  # Same rule as `uat workflow`: strip headings, table rows, list bullets and
+  # placeholders, then require real prose. Counting raw bytes let a file of
+  # repeated "# TODO" headings pass here while the CLI called it a stub.
+  meat=0
+  if [ -n "$f" ]; then
+    meat="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$f" 2>/dev/null \
+            | grep -vE '^(#|\||-$|\*$|_.*_|<!--|$)' \
+            | grep -viE '^(TBD|TODO|\?\?\?|N/A|\[.*\])$' \
+            | tr -d '\n' | wc -c | tr -d ' ')"
+    [ -n "$meat" ] || meat=0
+  fi
+  if [ "$meat" -ge 80 ]; then
     done_count=$((done_count + 1))
   elif [ -z "$next_phase" ]; then
     next_phase="$n"

@@ -111,16 +111,49 @@ run ln -sfn "$NEW" "$CURRENT"
 ok "current -> $NEW"
 
 # ------------------------------------------------------------- 6. restart
+#
+# One restart path, used by the deploy AND the rollback. The rollback used to
+# honour RESTART_CMD only, so a systemd-managed app rolled its symlink back and
+# then kept serving the broken release. It also must never abort the script:
+# a failed restart is precisely when the rollback is needed.
+restart_app() {
+  if [ -n "${RESTART_CMD:-}" ]; then
+    if [ ! -e "$CURRENT" ]; then
+      printf '   %s %s\n' "$(_c '2' 'would run in the release dir:')" "$RESTART_CMD"
+      return 0
+    fi
+    ( cd "$CURRENT" && run bash -lc "$RESTART_CMD" ) || {
+      warn "restart command reported an error"
+      return 1
+    }
+  elif service_exists "${APP_NAME}.service"; then
+    run systemctl restart "${APP_NAME}" || {
+      warn "systemctl restart ${APP_NAME} failed"
+      return 1
+    }
+  else
+    warn "no RESTART_CMD and no ${APP_NAME}.service - restart the app yourself"
+  fi
+  return 0
+}
+
+# roll_back <reason> - symlink back, restart the old release, verify, exit
+roll_back() {
+  warn "$1 - rolling back"
+  [ -n "$PREVIOUS" ] || die "no previous release to roll back to. Investigate $NEW."
+  ln -sfn "$PREVIOUS" "$CURRENT"
+  restart_app || warn "the rolled-back release did not restart cleanly"
+  if [ "$DRY_RUN" != "1" ] && ! wait_http "$HEALTH_URL" "${HEALTH_ATTEMPTS:-30}"; then
+    die "rolled back to $PREVIOUS but it is NOT healthy either. This is not a
+         release problem - check the database, the environment file and any
+         shared service. The failed release is at $NEW."
+  fi
+  die "rolled back to $PREVIOUS (verified healthy).
+       The failed release is still at $NEW for inspection."
+}
+
 step "Restarting the application"
-if [ -n "${RESTART_CMD:-}" ] && [ ! -e "$CURRENT" ]; then
-  printf '   %s %s\n' "$(_c '2' 'would run in the release dir:')" "$RESTART_CMD"
-elif [ -n "${RESTART_CMD:-}" ]; then
-  ( cd "$CURRENT" && run bash -lc "$RESTART_CMD" ) || warn "restart command reported an error"
-elif service_exists "${APP_NAME}.service"; then
-  run systemctl restart "${APP_NAME}"
-else
-  warn "no RESTART_CMD and no ${APP_NAME}.service - restart the app yourself"
-fi
+restart_app || roll_back "the new release failed to start"
 
 # ------------------------------------------------------------- 7. health
 step "Health check"
@@ -129,19 +162,20 @@ if [ "$DRY_RUN" = "1" ]; then
 elif wait_http "$HEALTH_URL" "${HEALTH_ATTEMPTS:-30}"; then
   ok "the new release is serving traffic"
 else
-  warn "health check failed - rolling back"
-  if [ -n "$PREVIOUS" ]; then
-    ln -sfn "$PREVIOUS" "$CURRENT"
-    [ -n "${RESTART_CMD:-}" ] && ( cd "$CURRENT" && bash -lc "$RESTART_CMD" ) || true
-    die "rolled back to $PREVIOUS. The failed release is still at $NEW for inspection."
-  fi
-  die "no previous release to roll back to. Investigate $NEW."
+  roll_back "health check failed"
 fi
 
 # ------------------------------------------------------------- 8. prune
 step "Pruning old releases"
 KEEP="${KEEP_RELEASES:-5}"
-COUNT="$(find "$RELEASES" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')"
+if [ ! -d "$RELEASES" ]; then
+  # Dry run on a server that has never been deployed to: nothing was created,
+  # so there is nothing to prune. Not an error.
+  ok "no releases directory yet - nothing to prune"
+  COUNT=0
+else
+  COUNT="$(find "$RELEASES" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')"
+fi
 if [ "$COUNT" -gt "$KEEP" ]; then
   # Never remove the live release, whatever its age.
   LIVE="$(readlink -f "$CURRENT")"

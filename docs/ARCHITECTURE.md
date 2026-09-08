@@ -382,3 +382,49 @@ with gaps is honest; a table with no gaps because the gaps were omitted is the
 failure this phase exists to prevent. The phase file says so explicitly, and
 also states its own ceiling: it proves the journeys you defined were performed,
 not that the product is correct.
+
+## Absence of a record is not absence of the field
+
+`installed.json` records `agent_files` - what the installer wrote outside
+`.agent-toolkit/`. Uninstall originally treated an *empty* map as "this predates
+provenance, fall back to guessing from file content".
+
+But empty is a meaningful result: it means every candidate file already existed
+and was preserved as a conflict, so the toolkit owns none of them. Install a
+Codex configuration into a project that already has `AGENTS.md` and
+`.agents/skills/` and that is exactly what you get - and the fallback then
+deleted the user's `AGENTS.md` on the way back out.
+
+Legacy is therefore detected by the *key's absence* (`"agent_files" not in
+state`), never by its emptiness. Both cases are tested: an empty map must
+preserve, a missing key must still clean up.
+
+## One restart path, and rollback owns it
+
+`deploy.sh` had two restart implementations: the deploy path honoured
+`RESTART_CMD` and fell back to systemd, while the rollback path honoured
+`RESTART_CMD` only. A systemd-managed application therefore rolled its symlink
+back and carried on serving the broken release.
+
+The initial restart was also fatal under `set -e`, so a service that failed to
+start exited the script before the rollback branch it was supposed to trigger.
+
+Both are fixed by a single `restart_app()` used by both paths, which never
+aborts the script, plus a `roll_back()` that restarts and then *re-verifies*
+the restored release - reporting honestly when both releases are unhealthy,
+because that is not a release problem.
+
+## The two progress checks share one rule
+
+`uat workflow` judged report substance by stripping headings, table rows and
+placeholders; the session hook counted raw bytes. A file of repeated `# TODO`
+headings was therefore a stub to one and a completed phase to the other - and
+the hook is the surface the agent actually reads.
+
+The hook now applies the same filter in `sed`/`grep` and the same 80-character
+threshold, and a test asserts the two agree on heading-only input.
+
+Separately, a phase whose report exists but whose declared artifact does not is
+now reported as a **gap** rather than done. A report claiming completion of
+phase 06 without `docs/architecture.md` is not a completed phase, and printing
+a warning underneath a green label was too easy to read past.

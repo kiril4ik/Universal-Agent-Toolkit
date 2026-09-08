@@ -519,15 +519,20 @@ def cmd_workflow(args) -> int:
         art_note = ""
         if artifact and state == "done":
             if not (project / artifact).exists():
+                # A report claiming a phase is finished, without the artifact
+                # that phase exists to produce, is not a finished phase.
+                state = "gap"
                 art_note = red(f"  missing {artifact}")
                 missing_artifacts.append((num, artifact))
         elif artifact:
             art_note = dim(f"  -> {artifact}")
 
-        if state in ("todo", "stub") and next_phase is None:
+        if state in ("todo", "stub", "gap") and next_phase is None:
             mark, next_phase = yellow("next"), (num, name)
         elif state == "done":
             mark = green("done")
+        elif state == "gap":
+            mark = red(" gap")
         elif state == "n/a":
             mark = dim(" -- ")
         else:

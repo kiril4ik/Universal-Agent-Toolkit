@@ -361,6 +361,27 @@ def _collect_mcp_specs(dest_root: Path) -> list[ServerSpec]:
     return [ServerSpec.from_json(p) for p in sorted(mcp_dir.glob("*.json"))]
 
 
+def predicted_mcp_specs(packs: list[Pack], toolkit_root: Path) -> list[ServerSpec]:
+    """MCP servers the selected packs carry, read from the catalogue.
+
+    Without this a dry run reported no MCP config at all, because it scanned a
+    directory the install had not written yet - so the preview omitted the very
+    file (.mcp.json) the user most wants to know about before it appears.
+    """
+    out: list[ServerSpec] = []
+    for pack in packs:
+        src = pack.files_dir / "mcp"
+        if src.is_dir():
+            out.extend(ServerSpec.from_json(f) for f in sorted(src.glob("*.json")))
+        for vm in pack.vendor_maps:
+            for frm, to in vm.files:
+                if to.startswith("mcp/") and to.endswith(".json"):
+                    f = toolkit_root / "vendor" / vm.vendor / frm
+                    if f.is_file():
+                        out.append(ServerSpec.from_json(f))
+    return out
+
+
 def _installed_rules(dest_root: Path) -> list[str]:
     d = dest_root / "rules"
     return sorted(p.name for p in d.glob("*.md")) if d.exists() else []
@@ -421,6 +442,10 @@ def execute(
     rules = sorted(set(_installed_rules(dest)) | set(pred_rules))
     skills = sorted(set(_installed_skills(dest)) | set(pred_skills))
     specs = _collect_mcp_specs(dest)
+    by_name = {sp.name: sp for sp in specs}
+    for sp in predicted_mcp_specs(plan.packs, toolkit_root):
+        by_name.setdefault(sp.name, sp)
+    specs = sorted(by_name.values(), key=lambda x: x.name)
     result.mcp_specs = specs
 
     # The workflow ships with the toolkit, so its presence is a property of the
@@ -706,7 +731,12 @@ def uninstall(
 
     # Recorded provenance: what we actually created, and the hash we wrote.
     owned: dict[str, str] = state.get("agent_files", {})
-    legacy = not owned          # installed before provenance was recorded
+    # Legacy means the field did not exist - an install from before provenance
+    # was recorded. An empty map is a RESULT: every candidate file already
+    # existed and was preserved as a conflict, so we own none of them. Treating
+    # that as legacy re-enabled the content heuristic and deleted the user's
+    # own AGENTS.md on the way back out.
+    legacy = "agent_files" not in state
 
     touched_dirs: set[Path] = set()
 

@@ -736,6 +736,175 @@ class TestReportedRegressions(TempProject):
         self.assertTrue((mount / "brainstorming/SKILL.md").exists())
 
 
+class TestRollbackRestartsTheService(unittest.TestCase):
+    """Rollback moved the symlink but never restarted a systemd-managed app,
+    so the old release was restored on disk and the broken one kept serving.
+    And a failed restart exited before rollback could run at all."""
+
+    DEPLOY = ROOT / "catalog/packs/deploy-ubuntu/files/deploy"
+
+    def setUp(self):
+        import shutil
+        self.tmp = Path(tempfile.mkdtemp(prefix="uat-sysd-"))
+        self.app = self.tmp / "app"
+        (self.app / "releases" / "GOOD-OLD").mkdir(parents=True)
+        (self.app / "shared").mkdir()
+        (self.app / "shared" / ".env").write_text("")
+        (self.app / "current").symlink_to(self.app / "releases" / "GOOD-OLD")
+        src = self.tmp / "src"; src.mkdir(); (src / "marker").write_text("new")
+        self.deploy = self.tmp / "deploy"
+        shutil.copytree(self.DEPLOY, self.deploy)
+        (self.deploy / "deploy.env").write_text(
+            f"APP_NAME=probe\nAPP_USER=nobody\nAPP_DIR={self.app}\n"
+            f"APP_DOMAIN=localhost\nAPP_PORT=59995\nAPP_REPO=\n"
+            f"APP_SOURCE={src}\nBUILD_CMD=\nMIGRATE_CMD=\nRESTART_CMD=\n"
+            f"HEALTH_PATH=/\nHEALTH_ATTEMPTS=1\n")
+        self.bin = self.tmp / "bin"; self.bin.mkdir()
+        self.log = self.tmp / "restarts.log"
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _stub_systemctl(self, restart_exit: int):
+        stub = self.bin / "systemctl"
+        stub.write_text(
+            "#!/bin/sh\n"
+            'case "$1" in\n'
+            '  list-unit-files) echo "probe.service enabled";;\n'
+            f'  restart) echo "$2" >> "{self.log}"; exit {restart_exit};;\n'
+            "esac\nexit 0\n")
+        stub.chmod(0o755)
+
+    def _deploy(self):
+        import subprocess
+        return subprocess.run(
+            ["bash", str(self.deploy / "deploy.sh"), "--env",
+             str(self.deploy / "deploy.env")],
+            capture_output=True, text=True, cwd=self.deploy, timeout=120,
+            env={**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}"})
+
+    def test_rollback_restarts_the_service(self):
+        self._stub_systemctl(0)
+        self._deploy()
+        self.assertEqual(os.path.basename(os.path.realpath(self.app / "current")),
+                         "GOOD-OLD")
+        restarts = self.log.read_text().split() if self.log.exists() else []
+        self.assertEqual(len(restarts), 2,
+                         "expected a restart for the deploy and one for the "
+                         f"rollback, got {restarts}")
+
+    def test_a_failed_restart_triggers_rollback(self):
+        self._stub_systemctl(1)
+        out = self._deploy()
+        self.assertIn("rolling back", out.stdout + out.stderr)
+        self.assertEqual(os.path.basename(os.path.realpath(self.app / "current")),
+                         "GOOD-OLD")
+
+    def test_dry_run_on_a_server_with_no_releases_directory(self):
+        """Pruning assumed releases/ existed and exited during the preview."""
+        import shutil, subprocess
+        shutil.rmtree(self.app / "releases")
+        (self.app / "current").unlink()
+        self._stub_systemctl(0)
+        out = subprocess.run(
+            ["bash", str(self.deploy / "deploy.sh"), "--env",
+             str(self.deploy / "deploy.env"), "--dry-run"],
+            capture_output=True, text=True, cwd=self.deploy, timeout=120,
+            env={**os.environ, "DRY_RUN": "1",
+                 "PATH": f"{self.bin}:{os.environ['PATH']}"})
+        self.assertEqual(out.returncode, 0,
+                         f"dry run failed:\n{out.stdout}\n{out.stderr}")
+        self.assertIn("nothing to prune", out.stdout)
+
+
+class TestSecondRoundRegressions(TempProject):
+    """Second reproduction round. Each failed against the previous fix."""
+
+    # --- 1: empty ownership map was mistaken for a legacy install ----------
+    def test_empty_agent_files_is_not_treated_as_legacy(self):
+        """Every candidate file pre-existed, so we own none - not 'unknown'."""
+        (self.project / ".agents" / "skills").mkdir(parents=True)
+        self.write("AGENTS.md", "# Team AGENTS\nSee .agent-toolkit/CORE.md\n")
+        self.install(["codex"])
+        state = inst.load_state(self.project)
+        self.assertIn("agent_files", state)
+        self.assertEqual(state["agent_files"], {}, "test premise changed")
+        inst.uninstall(self.project, self.registry, report=Report())
+        self.assertTrue((self.project / "AGENTS.md").is_file(),
+                        "uninstall deleted a file it never wrote")
+        self.assertIn("Team AGENTS", (self.project / "AGENTS.md").read_text())
+
+    def test_pre_provenance_install_still_cleans_up(self):
+        """A real legacy install has no agent_files key at all."""
+        self.install(["claude-code"])
+        sf = self.project / ".agent-toolkit/installed.json"
+        state = json.loads(sf.read_text())
+        del state["agent_files"]
+        sf.write_text(json.dumps(state))
+        inst.uninstall(self.project, self.registry, report=Report())
+        self.assertFalse((self.project / "CLAUDE.md").exists())
+
+    # --- 3b: dry run omitted the MCP config ------------------------------
+    def test_dry_run_previews_mcp_config(self):
+        plan = inst.build_plan(
+            ROOT, self.project, registry=self.registry, catalog=self.catalog,
+            agent_keys=["claude-code"], mode="focused",
+            explicit_packs=["superpowers", "mcp-context7"])
+        result = inst.execute(plan, ROOT, dry_run=True)
+        paths = " ".join(a.path for a in result.report.actions)
+        self.assertIn(".mcp.json", paths, "dry run omitted the MCP config")
+        self.assertTrue(result.mcp_specs, "dry run predicted no servers")
+
+    # --- 4a: hook and CLI disagreed on what counts as a report ------------
+    def test_hook_and_cli_agree_on_heading_only_reports(self):
+        import subprocess
+        self.install(["claude-code"], packs=["superpowers", "session-reminder"])
+        reports = self.project / ".agent-toolkit/reports"
+        for n in range(1, 14):
+            (reports / f"{n:02d}-x.md").write_text("# TODO\n" * 10)
+
+        from uat.cli import report_substance
+        verdicts = {report_substance(reports / f"{n:02d}-x.md")[0]
+                    for n in range(1, 14)}
+        self.assertEqual(verdicts, {"stub"}, "CLI accepted heading-only reports")
+
+        out = subprocess.run(
+            ["bash", str(self.project / ".agent-toolkit/hooks/session-start.sh")],
+            capture_output=True, text=True,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(self.project)})
+        self.assertIn("0 phase report(s)", out.stdout,
+                      "hook counted heading-only files as completed phases")
+
+    def test_hook_accepts_a_real_report(self):
+        import subprocess
+        self.install(["claude-code"], packs=["superpowers", "session-reminder"])
+        (self.project / ".agent-toolkit/reports/01-discovery.md").write_text(
+            "# Phase 01 - discovery\n\nEmpty repository: no manifests, no CI and "
+            "no tests. Treating this as a new project, and asking about hosting "
+            "before proposing a stack.\n")
+        out = subprocess.run(
+            ["bash", str(self.project / ".agent-toolkit/hooks/session-start.sh")],
+            capture_output=True, text=True,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(self.project)})
+        self.assertIn("1 phase report(s)", out.stdout)
+        self.assertIn("next phase: 02", out.stdout)
+
+    # --- 4b: a report without its artifact was still labelled done --------
+    def test_report_without_its_artifact_is_a_gap(self):
+        self.install(["claude-code"])
+        (self.project / ".agent-toolkit/reports/06-architecture.md").write_text(
+            "# Phase 06 - architecture\n\nModules: billing, auth, reporting. "
+            "Postgres with row-level security for tenant isolation, and a "
+            "database-backed job queue.\n")
+        import subprocess
+        out = subprocess.run(
+            [str(ROOT / "bin/uat"), "workflow", "--project", str(self.project)],
+            capture_output=True, text=True, env={**os.environ, "NO_COLOR": "1"})
+        self.assertIn("gap", out.stdout, "missing artifact still counted as done")
+        self.assertIn("docs/architecture.md", out.stdout)
+
+
 class TestProductAcceptance(unittest.TestCase):
     """Per-task verification existed; product acceptance did not.
 
