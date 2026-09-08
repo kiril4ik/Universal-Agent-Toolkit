@@ -285,9 +285,21 @@ Follow it exactly, in order:
 7. **Stop at the gate** (`workflow/11-gate.md`). Present the plan and wait for
    explicit approval. Do not begin implementing in the same message.
 
-Use the installed skills where they apply - `brainstorming` for design
-exploration, `writing-plans` for the implementation plan, and
-`verification-before-completion` before claiming anything is finished.
+## Skills belong to phases, not to this command
+
+Do not invoke skills up front. Each phase names the skill it uses:
+
+- phase 02 and 06 -> `brainstorming` (technique only)
+- phase 10 -> `writing-plans` (it owns the plan format and location)
+- phase 12 -> `subagent-driven-development` or `executing-plans`
+- throughout implementation -> `test-driven-development`,
+  `systematic-debugging`, `verification-before-completion`
+
+**Read the "Precedence" section of `{toolkit}/workflow/README.md` before your
+first skill.** Four skill instructions are superseded inside this workflow:
+classify once in triage rather than re-classifying, batch questions instead of
+one per message, one approval gate rather than two, and the skill's terminal
+state does not apply because phases 03-09 sit before the plan.
 
 Batch your questions. Never ask what the repository already answers.
 """

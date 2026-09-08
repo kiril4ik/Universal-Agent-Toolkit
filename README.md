@@ -135,12 +135,34 @@ Every other agent gets the same content as plain Markdown it can read.
 
 `.agent-toolkit/workflow/` holds a twelve-phase sequence any agent can follow:
 
-| | | |
+| # | Phase | Skill it delegates to |
 |---|---|---|
-| 00 triage | 01 discovery | 02 business logic |
-| 03 screens & flows | 04 content | 05 design |
-| 06 stack | 07 rules | 08 architecture |
-| 09 environments | 10 implementation plan | 11 gate |
+| 00–01 | triage, discovery | — |
+| 02 | business logic | `brainstorming` |
+| 03 | screens & flows | — |
+| 04–05 | stack, rules | — |
+| 06 | architecture | `brainstorming` |
+| 07–08 | content, design | `ui-ux-pro-max`, Figma MCP |
+| 09 | environments | — |
+| 10 | plan | **`writing-plans`** |
+| 11 | **gate** | — |
+| 12 | execute | **`subagent-driven-development`** |
+
+**Design runs after architecture, deliberately.** Screens & flows (03) give
+architecture what it needs early; visual design (08) then works against a
+chosen component library and a data model that can actually serve the screens,
+instead of being redone when they arrive.
+
+**The workflow sequences Superpowers rather than competing with it.** Phase 10
+does not define a plan format — it hands over to `writing-plans`, so there is
+one plan, in one place, that the execution skills can find. Phase 12 hands over
+to `subagent-driven-development`.
+
+Skills were written to run standalone, so four of their instructions are
+superseded inside the workflow — classify once in triage, batch questions, one
+approval gate, and their terminal-state rule does not apply. The complete list
+is the "Precedence" section of `workflow/README.md`, and tests assert it covers
+every known conflict. **No vendored file is edited to achieve this.**
 
 Triage picks the depth: a one-line fix runs discovery and stops; a new product
 runs everything. **Phase 11 is never skipped** — nothing is implemented until

@@ -1,7 +1,19 @@
-# 05 - Design
+# 08 - Design
 
 Produce the visual design the implementation will follow. Skip when there is
 no user interface.
+
+**This phase runs after stack (04) and architecture (06), deliberately.** You
+are designing against a chosen component library and a data model that can
+actually serve the screens. Check both before you start:
+
+- `docs/stack.md` - the CSS approach and component library you must build on
+- `docs/architecture.md` - what data each screen can actually be given
+- `docs/screens.md` - the screens, their five states, and their permissions
+
+If the design you want needs data the architecture does not provide, raise it
+now. Changing the data model here is cheap; changing it after the design is
+implemented is not.
 
 There are two paths. Decide which one applies before starting, and say so.
 
@@ -91,5 +103,5 @@ of meaning. Touch targets large enough to hit. Motion that respects
 `docs/design/` - direction, tokens (in a machine-readable form the code can
 import), component specifications, and screen designs or references.
 
-Plus `.agent-toolkit/reports/05-design.md`, stating which path was used and,
+Plus `.agent-toolkit/reports/08-design.md`, stating which path was used and,
 for Path A, what could not be pulled from the source.

@@ -37,6 +37,32 @@ If the work is genuinely small, ask once:
 
 Ask this **once**. If the answer is no, proceed. Do not re-ask every phase.
 
+## Classify once
+
+`brainstorming` will ask you to classify again in its own words. **Do not.**
+Carry the class you decided here, and say so:
+
+> Triage classified this as Feature, which maps to Bounded. Using that.
+
+| Here | brainstorming |
+|---|---|
+| Task | Bounded |
+| Feature | Bounded, or Architectural when it changes an interface others depend on |
+| Product | Architectural |
+| a probe inside phase 01 or 04 | Spike |
+
+Re-deriving the class is not free: it is how a one-line change ends up on the
+architectural path, which is the outcome this phase exists to prevent.
+
+## Red flags
+
+| Thought | Reality |
+|---|---|
+| "I understand this kind of app, so it's a Task" | Task measures the repo, not your familiarity. If the flow isn't here to read, it isn't a Task. |
+| "I'll decide the class as I go" | Then you will decide it under pressure, badly. Decide now, in one line. |
+| "It grew, but I'm nearly done" | The class ratchets up. Stop and say so. |
+| "They approved the last one, so this is approved" | Each piece of work gets its own class and its own approval. |
+
 ## The ratchet
 
 Class only goes up. If, midway, you find hidden complexity - an undocumented

@@ -1,4 +1,4 @@
-# 04 - Content
+# 07 - Content
 
 Real content, written before the design, because layout that was designed
 around placeholder text breaks when real text arrives.
@@ -46,4 +46,4 @@ rather than after launch.
 `docs/content/` - copy organised per screen or per flow, plus the voice note,
 plus seed data (or the script that generates it).
 
-Plus `.agent-toolkit/reports/04-content.md`.
+Plus `.agent-toolkit/reports/07-content.md`.

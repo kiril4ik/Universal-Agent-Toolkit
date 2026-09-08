@@ -463,6 +463,72 @@ class TestWorkflowTrigger(TempProject):
         self.assertIn("./.agent-toolkit/toolkit/uat", text)
 
 
+class TestSkillPrecedence(TempProject):
+    """The workflow must resolve every conflict with the vendored skills."""
+
+    def readme(self):
+        return (ROOT / "catalog/workflow/README.md").read_text()
+
+    def test_precedence_rule_is_stated(self):
+        text = self.readme()
+        self.assertIn("Phases own the sequence and the gates", text)
+        self.assertIn("Skills own the technique", text)
+
+    def test_all_four_known_conflicts_are_addressed(self):
+        text = self.readme().lower()
+        for topic in ("classify once", "batch questions", "one gate",
+                      "terminal states"):
+            self.assertIn(topic, text, f"precedence does not cover: {topic}")
+
+    def test_triage_maps_to_the_skill_vocabulary(self):
+        text = (ROOT / "catalog/workflow/00-triage.md").read_text()
+        for word in ("Bounded", "Architectural", "Spike"):
+            self.assertIn(word, text, f"triage does not map {word}")
+
+    def test_plan_phase_delegates_rather_than_redefining(self):
+        text = (ROOT / "catalog/workflow/10-plan.md").read_text()
+        self.assertIn("writing-plans", text)
+        self.assertIn("docs/superpowers/plans/", text)
+        self.assertIn("does not define a plan format", text)
+
+    def test_execute_phase_delegates_to_superpowers(self):
+        text = (ROOT / "catalog/workflow/12-execute.md").read_text()
+        for skill in ("subagent-driven-development", "executing-plans",
+                      "finishing-a-development-branch", "using-git-worktrees"):
+            self.assertIn(skill, text, skill)
+
+    def test_design_runs_after_stack_and_architecture(self):
+        wf = ROOT / "catalog/workflow"
+        self.assertTrue((wf / "04-stack.md").is_file())
+        self.assertTrue((wf / "06-architecture.md").is_file())
+        self.assertTrue((wf / "08-design.md").is_file())
+        design = (wf / "08-design.md").read_text()
+        self.assertIn("docs/architecture.md", design)
+        self.assertIn("docs/stack.md", design)
+
+    def test_every_phase_file_is_numbered_contiguously(self):
+        wf = ROOT / "catalog/workflow"
+        nums = sorted(f.name[:2] for f in wf.glob("[0-9][0-9]-*.md"))
+        self.assertEqual(nums, [f"{i:02d}" for i in range(13)])
+
+    def test_skills_named_by_phases_are_actually_vendored(self):
+        """A phase must not reference a skill the toolkit cannot install."""
+        import re
+        available = {d.name for d in (ROOT / "vendor/superpowers/skills").iterdir()
+                     if d.is_dir()}
+        for phase in sorted((ROOT / "catalog/workflow").glob("[0-9][0-9]-*.md")):
+            for ref in re.findall(r"\.\./skills/([a-z0-9-]+)/SKILL\.md", phase.read_text()):
+                self.assertIn(ref, available,
+                              f"{phase.name} references unvendored skill {ref}")
+
+
+class TestVendorReachability(unittest.TestCase):
+    def test_no_vendored_skill_is_unreachable(self):
+        from uat.catalog import unreachable_vendor_content
+        orphans = unreachable_vendor_content(Catalog.load(ROOT), ROOT)
+        self.assertEqual(orphans, {}, f"vendored but no pack installs it: {orphans}")
+
+
 class TestEmbedding(TempProject):
     """Embedding must keep the project self-contained without adding folders."""
 
@@ -531,7 +597,7 @@ class TestWorkflowShipped(TempProject):
         self.install(["claude-code"])
         wf = self.project / ".agent-toolkit/workflow"
         self.assertTrue((wf / "README.md").exists())
-        for phase in ("00-triage", "01-discovery", "11-gate"):
+        for phase in ("00-triage", "01-discovery", "10-plan", "11-gate", "12-execute"):
             self.assertTrue((wf / f"{phase}.md").exists(), phase)
 
     def test_core_policy_is_installed(self):

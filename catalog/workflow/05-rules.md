@@ -1,4 +1,4 @@
-# 07 - Rules
+# 05 - Rules
 
 Make sure the repository holds best-practice rules for every technology the
 stack actually uses - and nothing it does not.
@@ -48,4 +48,4 @@ project must actually come from it, byte for byte.
 Updated `.agent-toolkit/rules/`, and a line in the report listing which packs
 were added and which technologies still have no rule coverage.
 
-Plus `.agent-toolkit/reports/07-rules.md`.
+Plus `.agent-toolkit/reports/05-rules.md`.

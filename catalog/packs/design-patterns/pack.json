@@ -1,0 +1,21 @@
+{
+  "id": "design-patterns",
+  "title": "OOP design patterns",
+  "tier": "optional",
+  "tags": [
+    "quality"
+  ],
+  "detect": [],
+  "summary": "Classic patterns, when they help, and when they are overkill.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/oop-design-patterns.instructions.md",
+          "to": "rules/DESIGN_PATTERNS.md"
+        }
+      ]
+    }
+  ]
+}

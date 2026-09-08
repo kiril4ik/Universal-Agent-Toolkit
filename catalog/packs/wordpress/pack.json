@@ -1,0 +1,23 @@
+{
+  "id": "wordpress",
+  "title": "WordPress",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "php"
+  ],
+  "summary": "Theme and plugin development, hooks, and the WordPress data layer.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/wordpress.instructions.md",
+          "to": "rules/WORDPRESS.md"
+        }
+      ]
+    }
+  ]
+}

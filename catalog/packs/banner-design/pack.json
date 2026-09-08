@@ -1,0 +1,17 @@
+{
+  "id": "banner-design",
+  "title": "Banner design",
+  "tier": "optional",
+  "tags": [
+    "design"
+  ],
+  "detect": [],
+  "summary": "Social, ad, web-hero and print banner design across 22 styles.",
+  "vendor_maps": [
+    {
+      "vendor": "ui-ux-pro-max",
+      "src": ".claude/skills/banner-design",
+      "dest": "skills/banner-design"
+    }
+  ]
+}

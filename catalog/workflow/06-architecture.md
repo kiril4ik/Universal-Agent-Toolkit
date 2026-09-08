@@ -1,4 +1,4 @@
-# 08 - Architecture
+# 06 - Architecture
 
 How the system is put together. Skip for task-class work.
 
@@ -55,4 +55,4 @@ edges and keep the domain logic pure enough to test without infrastructure.
 background work, integrations, error handling, and the invariant-to-
 enforcement map.
 
-Plus `.agent-toolkit/reports/08-architecture.md`.
+Plus `.agent-toolkit/reports/06-architecture.md`.

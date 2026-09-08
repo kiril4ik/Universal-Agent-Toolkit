@@ -1,0 +1,17 @@
+{
+  "id": "slides",
+  "title": "Presentation slides",
+  "tier": "optional",
+  "tags": [
+    "design"
+  ],
+  "detect": [],
+  "summary": "Strategic HTML presentations with charts, design tokens and copy formulas.",
+  "vendor_maps": [
+    {
+      "vendor": "ui-ux-pro-max",
+      "src": ".claude/skills/slides",
+      "dest": "skills/slides"
+    }
+  ]
+}

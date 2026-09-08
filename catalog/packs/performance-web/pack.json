@@ -1,0 +1,23 @@
+{
+  "id": "performance-web",
+  "title": "Web performance",
+  "tier": "optional",
+  "tags": [
+    "frontend"
+  ],
+  "detect": [
+    "frontend"
+  ],
+  "summary": "Measure-first performance work across frontend, backend and database.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/performance-optimization.instructions.md",
+          "to": "rules/PERFORMANCE_WEB.md"
+        }
+      ]
+    }
+  ]
+}

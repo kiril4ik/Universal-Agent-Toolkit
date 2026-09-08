@@ -1,0 +1,21 @@
+{
+  "id": "code-review",
+  "title": "Code review",
+  "tier": "optional",
+  "tags": [
+    "quality"
+  ],
+  "detect": [],
+  "summary": "What to look for in a review, and how to give feedback that lands.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/code-review-generic.instructions.md",
+          "to": "rules/CODE_REVIEW.md"
+        }
+      ]
+    }
+  ]
+}

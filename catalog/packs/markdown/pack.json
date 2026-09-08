@@ -1,0 +1,21 @@
+{
+  "id": "markdown",
+  "title": "Markdown",
+  "tier": "optional",
+  "tags": [
+    "docs"
+  ],
+  "detect": [],
+  "summary": "GitHub-flavoured Markdown: tables, callouts, links and accessibility.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/markdown-gfm.instructions.md",
+          "to": "rules/MARKDOWN.md"
+        }
+      ]
+    }
+  ]
+}

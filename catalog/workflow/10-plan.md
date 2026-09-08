@@ -1,66 +1,79 @@
 # 10 - Implementation plan
 
-Turn everything above into an ordered list of independently verifiable tasks.
+**This phase does not define a plan format. It hands over to the
+`writing-plans` skill, which does.**
 
-Skip for task-class work - implement it directly, with tests.
+Skip for task-class work.
 
-## What a task looks like
+## Use the skill
 
-Each task states, before implementation starts:
+**Announce:** "I'm using the writing-plans skill to create the implementation plan."
 
-- **Goal** - one sentence, in terms of observable behaviour
-- **Depends on** - which tasks must be done first
-- **Files** - the specific files to create or change
-- **Approach** - enough that someone else could implement it the same way
-- **Tests** - what proves it works, written before or alongside the code
-- **Verification command** - the exact command, and what passing looks like
-- **Done when** - acceptance criteria a reviewer can check
+Read `../skills/writing-plans/SKILL.md` and follow it exactly. It is more
+rigorous than anything this workflow would restate: file-structure mapping
+before task decomposition, task right-sizing, bite-sized steps carrying their
+own TDD cycle, a no-placeholders rule, and a self-review pass for spec
+coverage and type consistency.
 
-If you cannot name the verification command, the task is not ready.
+Do not write your own plan format alongside it. One plan, one format.
 
-## Slice vertically
+## What this workflow supplies as the spec
 
-Prefer thin end-to-end slices over horizontal layers. "The whole data layer"
-is not demonstrable and hides integration problems until the end. "A user can
-sign up and see their empty dashboard" is demonstrable on day one and proves
-the layers actually connect.
+`writing-plans` expects a spec. Yours is not a single file - it is the set of
+artifacts the earlier phases produced:
 
-Order so that something runs as early as possible, and stays running.
+| Skill expects | You have |
+|---|---|
+| requirements | `docs/business-logic.md` |
+| interface surface | `docs/screens.md` |
+| technical constraints | `docs/stack.md`, `docs/architecture.md` |
+| environment | `.agent-toolkit/deploy/`, `.agent-toolkit/docker/` |
+| decision history | `.agent-toolkit/reports/` |
 
-## Size
+Read all of them before starting. When the skill's spec-coverage check asks
+whether every requirement maps to a task, check it against **all** of these,
+not just the last one you read.
 
-A task should be completable and verifiable in one focused sitting. If a task
-has "and" in its goal, it is probably two tasks. If it touches fifteen files,
-it is definitely more than one.
+## Where the plan goes
 
-## Sequence deliberately
+Use the skill's own default: `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`.
 
-Put first: anything that proves a risky assumption, anything everything else
-depends on, and anything that would force rework if discovered late.
+Do not relocate it. The execution skills look there, and a plan in a bespoke
+location is a plan that the execution chain cannot find.
 
-Put last: polish, optimisation, and anything you might not need.
+## What this workflow adds that the skill does not
 
-## What goes in the plan that is not a feature
+The skill plans a feature. This workflow is planning a *project*, so make sure
+the plan also contains the work that is nobody's feature and therefore never
+gets written down:
 
-Be explicit about these, or they never get done:
+- project setup, tooling, linting, CI
+- the Docker environment from phase 09
+- authentication, if there is any
+- error handling and logging as a deliberate task, not a side effect
+- the deployment path, exercised once before it is needed
+- seed data from phase 07
 
-- Project setup, tooling, CI
-- The Docker environment from phase 09
-- Authentication, if there is any
-- Error handling and logging
-- The deployment path, exercised at least once before it is needed
-- Seed data from phase 04
+If any of these is missing from the plan after the skill's self-review, add it.
+
+## Sequencing
+
+Order so something runs end to end as early as possible and stays running.
+Prefer thin vertical slices over horizontal layers: "a user can sign up and
+see an empty dashboard" is demonstrable on day one and proves the layers
+connect. "The whole data layer" is neither.
+
+Put first anything that proves a risky assumption or that everything else
+depends on. Put last polish, optimisation, and anything you might not need.
 
 ## Output
 
-`docs/plan.md` - the ordered task list, in the format above.
+`docs/superpowers/plans/YYYY-MM-DD-<feature>.md` - written by the skill.
 
-Plus `.agent-toolkit/reports/10-plan.md` recording sequencing rationale and
-identified risks.
+Plus `.agent-toolkit/reports/10-plan.md` recording sequencing rationale, the
+risks you identified, and anything you added beyond the skill's output.
 
-## Executing it
+## Next
 
-If your tool has a plan-execution skill (Superpowers `executing-plans`,
-`subagent-driven-development`), use it. Otherwise work the list in order:
-implement one task, run its verification command, read the output, commit,
-move on. One task per commit.
+Phase 11. **Do not accept the skill's execution handoff yet** - it will offer
+you subagent-driven or inline execution. The gate comes first.

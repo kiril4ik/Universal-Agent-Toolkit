@@ -5,6 +5,15 @@ talks about frameworks or screens.
 
 Skip for task-class work. Never skip for product-class work.
 
+**Use the `brainstorming` skill for this phase** - announce it, and read
+`../skills/brainstorming/SKILL.md`. It supplies the technique: separating
+facts from assumptions from unknowns, proposing real alternatives, and
+YAGNI-ing speculative scope.
+
+Two of its instructions are superseded here - carry your triage class in
+rather than re-classifying, and batch your questions unless the mode is
+`thorough`. See "Precedence" in `README.md`.
+
 ## Establish the frame
 
 - **What problem does this solve, for whom?** One paragraph, concrete.

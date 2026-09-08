@@ -1,0 +1,21 @@
+{
+  "id": "object-calisthenics",
+  "title": "Object calisthenics",
+  "tier": "optional",
+  "tags": [
+    "quality"
+  ],
+  "detect": [],
+  "summary": "Nine constraints that force smaller, better-bounded objects.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/object-calisthenics.instructions.md",
+          "to": "rules/OBJECT_CALISTHENICS.md"
+        }
+      ]
+    }
+  ]
+}

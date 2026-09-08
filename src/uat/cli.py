@@ -150,6 +150,32 @@ def cmd_agents(args) -> int:
 
 def cmd_catalog(args) -> int:
     _, catalog = _load(TOOLKIT_ROOT)
+    if getattr(args, "unmapped", False):
+        from .catalog import unmapped_rule_files, unreachable_vendor_content
+        print(bold("Vendored content with no pack"))
+        orphans = unreachable_vendor_content(catalog, TOOLKIT_ROOT)
+        if orphans:
+            print(f"\n  {red('unreachable skills')} - vendored but not installable:")
+            for vendor, names in orphans.items():
+                for n in names:
+                    print(f"    {vendor}/{n}")
+        for vendor, count in sorted(unmapped_rule_files(catalog, TOOLKIT_ROOT).items()):
+            print(f"\n  {vendor}: {yellow(str(count))} rule file(s) with no pack")
+            sub = {"awesome-copilot": ("instructions", ".instructions.md"),
+                   "awesome-cursorrules": ("rules", ".mdc")}[vendor]
+            base = TOOLKIT_ROOT / "vendor" / vendor / sub[0]
+            used = {f["from"].split("/")[-1]
+                    for p in catalog for vm in p.vendor_maps for f in
+                    [{"from": s} for s, _ in vm.files] if vm.vendor == vendor}
+            names = sorted(f.name.replace(sub[1], "") for f in base.glob("*" + sub[1])
+                           if f.name not in used)
+            for i in range(0, min(len(names), 60), 6):
+                print("    " + "  ".join(f"{n:<22}" for n in names[i:i + 6]))
+            if len(names) > 60:
+                print(dim(f"    ... and {len(names) - 60} more"))
+        print()
+        print(dim("  Add one with a pack.json - see docs/ARCHITECTURE.md"))
+        return 0
     print(bold(f"{len(catalog)} packs"))
     last = None
     for pack in catalog:
@@ -331,14 +357,15 @@ PHASES = [
     ("01", "discovery", "reports/01-discovery.md"),
     ("02", "business logic", "docs/business-logic.md"),
     ("03", "screens & flows", "docs/screens.md"),
-    ("04", "content", "docs/content/"),
-    ("05", "design", "docs/design/"),
-    ("06", "stack", "docs/stack.md"),
-    ("07", "rules", "installed rule packs"),
-    ("08", "architecture", "docs/architecture.md"),
+    ("04", "stack", "docs/stack.md"),
+    ("05", "rules", "installed rule packs"),
+    ("06", "architecture", "docs/architecture.md"),
+    ("07", "content", "docs/content/"),
+    ("08", "design", "docs/design/"),
     ("09", "environments", "Docker + deploy"),
-    ("10", "implementation plan", "docs/plan.md"),
+    ("10", "plan", "docs/superpowers/plans/"),
     ("11", "GATE", "go / no-go"),
+    ("12", "execute", "working code"),
 ]
 
 
@@ -524,6 +551,22 @@ def cmd_doctor(args) -> int:
                             f"pack {pack.id} -> missing vendor path {vm.vendor}/{rel}"
                         )
 
+    if not slim:
+        from .catalog import unreachable_vendor_content, unmapped_rule_files
+        orphans = unreachable_vendor_content(catalog, TOOLKIT_ROOT)
+        for vendor, names in orphans.items():
+            problems.append(
+                f"vendored but no pack can install it: {vendor} -> "
+                + ", ".join(names)
+            )
+        if not orphans:
+            print(f"  {green('ok')}  every vendored skill is reachable by a pack")
+        unmapped = unmapped_rule_files(catalog, TOOLKIT_ROOT)
+        for vendor, count in sorted(unmapped.items()):
+            if count:
+                print(dim(f"  --  {vendor}: {count} rule file(s) vendored with no pack "
+                          f"(expected; run `uat catalog --unmapped`)"))
+
     for name in ("catalog/core", "catalog/workflow"):
         if not (TOOLKIT_ROOT / name).exists():
             problems.append(f"missing {name}")
@@ -556,6 +599,8 @@ def build_parser() -> argparse.ArgumentParser:
     a.set_defaults(func=cmd_agents)
 
     c = sub.add_parser("catalog", help="list available packs and profiles")
+    c.add_argument("--unmapped", action="store_true",
+                   help="show vendored content that no pack exposes")
     c.set_defaults(func=cmd_catalog)
 
     d = sub.add_parser("detect", help="show what stack is detected in a project")

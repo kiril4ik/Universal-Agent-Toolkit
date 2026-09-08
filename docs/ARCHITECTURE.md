@@ -143,3 +143,46 @@ file.
 
 Because of this, `--embed` runs *before* the install renders anything: the
 embedded launcher must exist for the generated commands to point at it.
+
+## Composing with Superpowers instead of competing with it
+
+Superpowers ships a complete engineering chain: `brainstorming` ->
+`writing-plans` -> `subagent-driven-development` / `executing-plans` ->
+`finishing-a-development-branch`. The first version of this workflow
+paralleled it - its own classification vocabulary, its own plan format, its
+own approval gate - which produced four live contradictions.
+
+The resolution is a precedence rule, stated once in `workflow/README.md`:
+
+> **Phases own the sequence and the gates. Skills own the technique inside a
+> phase.**
+
+From that, each conflict resolves deterministically:
+
+| Conflict | Resolution |
+|---|---|
+| two classification vocabularies | classify once in phase 00; triage carries a mapping table to spike/bounded/architectural |
+| one question per message vs batch | batch, because the workflow also runs on non-interactive agents; exception for thorough-mode design |
+| two approval gates | brainstorming's gate *is* the gate for Task class; phase 11 is the gate otherwise |
+| "only writing-plans may follow brainstorming" | that is its standalone path; here phases 03-09 sit between |
+
+The division of labour: **Superpowers owns the engineering chain, this
+workflow owns the product phases it has nothing for** - business logic,
+screens and flows, content, design, stack selection, rules installation,
+environments and deployment - plus the cross-artifact coherence gate.
+
+Phase 10 therefore defines no plan format. It delegates to `writing-plans`
+and uses that skill's own default location, `docs/superpowers/plans/`, so the
+execution skills find the plan where they expect it. Both skills document that
+user preference may override their paths, so no vendored file is edited.
+
+A test asserts the precedence section covers every known conflict, and another
+asserts no phase references a skill that is not actually vendored.
+
+## Vendor reachability
+
+Vendoring content no pack can install is dead weight: repository size for a
+capability that cannot be reached. `uat doctor` fails when a vendored skill
+directory has no pack mapping it, and `uat catalog --unmapped` lists vendored
+rule documents with no pack - expected for the broad libraries, which are
+mapped on demand.

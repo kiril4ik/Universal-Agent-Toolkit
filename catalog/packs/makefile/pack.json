@@ -1,0 +1,21 @@
+{
+  "id": "makefile",
+  "title": "Makefiles",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [],
+  "summary": "Portable, debuggable makefiles: phony targets, variables, dependencies.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/makefile.instructions.md",
+          "to": "rules/MAKEFILE.md"
+        }
+      ]
+    }
+  ]
+}

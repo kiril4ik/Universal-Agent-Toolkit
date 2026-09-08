@@ -1,0 +1,23 @@
+{
+  "id": "langchain",
+  "title": "LangChain (Python)",
+  "tier": "optional",
+  "tags": [
+    "ai"
+  ],
+  "detect": [
+    "python"
+  ],
+  "summary": "Chains, agents, retrieval and prompt management in LangChain.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/langchain-python.instructions.md",
+          "to": "rules/LANGCHAIN.md"
+        }
+      ]
+    }
+  ]
+}

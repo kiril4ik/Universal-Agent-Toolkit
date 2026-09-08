@@ -1,0 +1,23 @@
+{
+  "id": "kubernetes-manifests",
+  "title": "Kubernetes manifests",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [
+    "kubernetes"
+  ],
+  "summary": "Writing and structuring Kubernetes YAML that is reviewable and safe.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/kubernetes-manifests.instructions.md",
+          "to": "rules/KUBERNETES_MANIFESTS.md"
+        }
+      ]
+    }
+  ]
+}

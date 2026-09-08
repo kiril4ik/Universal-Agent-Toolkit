@@ -1,4 +1,4 @@
-# 06 - Stack
+# 04 - Stack
 
 Choose the technologies, and write down why. Skip only when the stack is
 already fixed by an existing codebase or an explicit requirement.
@@ -50,4 +50,4 @@ beats a message broker you do not need yet.
 
 `docs/stack.md` - the choices, versions, rationale, and rejected alternatives.
 
-Plus `.agent-toolkit/reports/06-stack.md`.
+Plus `.agent-toolkit/reports/04-stack.md`.

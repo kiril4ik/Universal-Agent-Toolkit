@@ -1,0 +1,21 @@
+{
+  "id": "powershell",
+  "title": "PowerShell",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [],
+  "summary": "PowerShell scripting style, error handling and module structure.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/powershell.instructions.md",
+          "to": "rules/POWERSHELL.md"
+        }
+      ]
+    }
+  ]
+}

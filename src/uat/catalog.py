@@ -226,3 +226,71 @@ class Catalog:
         for parent in prof.get("extends", []):
             ids |= self.resolve_profile(parent)
         return self.expand(ids)
+
+
+# ----------------------------------------------------------------------
+# reachability
+# ----------------------------------------------------------------------
+
+# Directories inside a snapshot whose children are individually installable.
+_SKILL_ROOTS = {
+    "superpowers": "skills",
+    "vercel-agent-skills": "skills",
+    "ui-ux-pro-max": ".claude/skills",
+}
+
+
+def unreachable_vendor_content(catalog: "Catalog", toolkit_root: Path) -> dict[str, list[str]]:
+    """Vendored skill directories that no pack can install.
+
+    Vendoring something no pack maps is dead weight: it costs repository size
+    and implies a capability that cannot actually be installed.
+    """
+    mapped: set[tuple[str, str]] = set()
+    for pack in catalog:
+        for vm in pack.vendor_maps:
+            if vm.src:
+                mapped.add((vm.vendor, vm.src))
+            for src, _ in vm.files:
+                mapped.add((vm.vendor, src))
+
+    out: dict[str, list[str]] = {}
+    for vendor, root in _SKILL_ROOTS.items():
+        base = toolkit_root / "vendor" / vendor / root
+        if not base.is_dir():
+            continue
+        if (vendor, root) in mapped:      # whole directory is mapped
+            continue
+        orphans = [
+            d.name for d in sorted(base.iterdir())
+            if d.is_dir() and (vendor, f"{root}/{d.name}") not in mapped
+        ]
+        if orphans:
+            out[vendor] = orphans
+    return out
+
+
+def unmapped_rule_files(catalog: "Catalog", toolkit_root: Path) -> dict[str, int]:
+    """Count vendored rule documents that no pack exposes.
+
+    Unlike orphaned skills this is expected: the rule libraries are broad on
+    purpose and packs are added on demand. Reported so the ratio is visible.
+    """
+    used: set[tuple[str, str]] = set()
+    for pack in catalog:
+        for vm in pack.vendor_maps:
+            for src, _ in vm.files:
+                used.add((vm.vendor, src))
+
+    out: dict[str, int] = {}
+    for vendor, sub, ext in (
+        ("awesome-copilot", "instructions", ".instructions.md"),
+        ("awesome-cursorrules", "rules", ".mdc"),
+    ):
+        base = toolkit_root / "vendor" / vendor / sub
+        if not base.is_dir():
+            continue
+        total = list(base.glob("*" + ext))
+        out[vendor] = len([f for f in total
+                           if (vendor, f"{sub}/{f.name}") not in used])
+    return out

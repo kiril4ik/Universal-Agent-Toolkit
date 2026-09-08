@@ -1,0 +1,23 @@
+{
+  "id": "dotnet-architecture",
+  "title": ".NET architecture",
+  "tier": "optional",
+  "tags": [
+    "backend"
+  ],
+  "detect": [
+    "dotnet"
+  ],
+  "summary": "Layering, dependency direction and project structure for .NET solutions.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/dotnet-architecture-good-practices.instructions.md",
+          "to": "rules/DOTNET_ARCHITECTURE.md"
+        }
+      ]
+    }
+  ]
+}

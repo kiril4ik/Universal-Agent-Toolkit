@@ -1,0 +1,23 @@
+{
+  "id": "devcontainers",
+  "title": "Dev containers",
+  "tier": "optional",
+  "tags": [
+    "infra"
+  ],
+  "detect": [
+    "docker"
+  ],
+  "summary": "VS Code dev container configuration, features and reproducible setups.",
+  "vendor_maps": [
+    {
+      "vendor": "awesome-copilot",
+      "files": [
+        {
+          "from": "instructions/devcontainers.instructions.md",
+          "to": "rules/DEVCONTAINERS.md"
+        }
+      ]
+    }
+  ]
+}
