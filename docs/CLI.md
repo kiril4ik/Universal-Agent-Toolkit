@@ -135,7 +135,7 @@ Four ways. When more than one is given, the first matching row wins:
 | `--all` | install every pack |
 | `--packs ID...` | install exactly these; no detection, no recommendation |
 | `--profile NAME` | install a named bundle (`core`, `frontend`, `nextjs`, `laravel-react`, `python-api`, `design`) |
-| *(none of the above)* | detect the stack and recommend; interactive list unless `--yes` |
+| *(none of the above)* | detect the stack and recommend; keyboard checklist (arrows/Space/Enter) unless `--yes` |
 
 Any of the first three also suppresses the interactive pack list — you have
 already said what you want.

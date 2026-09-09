@@ -171,23 +171,32 @@ How autonomous should the agent be?
   3  autonomous  decide independently; interrupt only for risky or ambiguous calls
 ```
 
-**Pack selection** — a toggle list grouped by tier, with detected packs
+**Pack selection** — a keyboard checklist ordered by tier, with detected packs
 pre-checked and the evidence shown:
 
 ```
-Select packs to install
-  toggle: numbers/ranges (1 3 5-8)   a=all  n=none  r=reset  Enter=accept
+Select skills and packs to install
+Up/Down: move  Space: toggle  Enter: accept
+Esc: cancel  a: all  n: none  r: reset
 
-  CORE
-     1 [x] Karpathy guidelines                 always
-     2 [x] Security & OWASP                    always
-     3 [x] Superpowers engineering skills      always
-  RECOMMENDED
-     4 [x] Accessibility (a11y)
-     5 [ ] Ubuntu deployment
-     6 [x] Docker & containers                 detected: docker
+> [x] Karpathy guidelines (core)
+  [x] Security & OWASP (core)
+  [x] Superpowers engineering skills (core)
+  [x] Accessibility (a11y) (recommended)
+  [ ] Ubuntu deployment (recommended)
+  [x] Docker & containers (recommended) detected: docker
   ...
 ```
+
+Use **Up/Down** to move, **Space** to select or deselect, and **Enter** to
+confirm. **Esc** or **Ctrl+C** cancels installation. The list scrolls with the
+cursor, so no item numbers are needed. **A** selects all, **N** clears the
+selection, and **R** restores recommendations. Dependencies are added when
+you confirm. Skills are selected through their installable packs.
+
+The same controls work in Windows PowerShell/Command Prompt and macOS/Linux
+terminals. For automation or redirected input/output, use `--yes`,
+`--packs ID ...`, or `--profile NAME`.
 
 Then a plan, then `Proceed? [Y/n]`.
 

@@ -32,67 +32,9 @@ def _project(args) -> Path:
 
 
 def _interactive_packs(catalog: Catalog, recommended: set[str], detection) -> set[str]:
-    """Numbered toggle list. Returns the final selection."""
-    selected = set(recommended)
-    items = list(catalog)
+    from .picker import choose_packs
 
-    while True:
-        print()
-        print(bold("Select packs to install"))
-        print(dim("  toggle: numbers/ranges (1 3 5-8)   a=all  n=none  r=reset  Enter=accept"))
-        print()
-        last_tier = None
-        for idx, pack in enumerate(items, 1):
-            if pack.tier != last_tier:
-                print(f"  {bold(pack.tier.upper())}")
-                last_tier = pack.tier
-            mark = green("x") if pack.id in selected else " "
-            why = ""
-            if pack.detect and (set(pack.detect) & detection.tokens):
-                hit = sorted(set(pack.detect) & detection.tokens)[0]
-                why = dim(f"  detected: {hit}")
-            elif pack.tier == "core":
-                why = dim("  always")
-            print(f"   {idx:>3} [{mark}] {pack.title:<34}{why}")
-        print()
-
-        try:
-            answer = input("> ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            raise ToolkitError("cancelled")
-
-        if answer == "":
-            return catalog.expand(selected)
-        if answer == "a":
-            selected = set(catalog.ids)
-            continue
-        if answer == "n":
-            selected = set()
-            continue
-        if answer == "r":
-            selected = set(recommended)
-            continue
-
-        wanted: set[int] = set()
-        bad = False
-        for tok in answer.replace(",", " ").split():
-            if "-" in tok:
-                a, _, b = tok.partition("-")
-                if a.isdigit() and b.isdigit():
-                    wanted.update(range(int(a), int(b) + 1))
-                else:
-                    bad = True
-            elif tok.isdigit():
-                wanted.add(int(tok))
-            else:
-                bad = True
-        if bad or any(n < 1 or n > len(items) for n in wanted):
-            print(red("  invalid selection"))
-            continue
-        for n in wanted:
-            pid = items[n - 1].id
-            selected.symmetric_difference_update({pid})
+    return choose_packs(catalog, recommended, detection)
 
 
 def _choose_mode() -> str:
@@ -311,7 +253,8 @@ def cmd_install(args) -> int:
     registry, catalog = _load(TOOLKIT_ROOT)
     project = _project(args)
 
-    interactive = sys.stdin.isatty() and not args.yes and not args.dry_run
+    interactive = (sys.stdin.isatty() and sys.stdout.isatty()
+                   and not args.yes and not args.dry_run)
 
     # An install into a configured project EXTENDS it. Anything else means
     # `--add go` silently drops the packs, agents and mode already recorded -

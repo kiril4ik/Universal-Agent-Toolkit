@@ -1633,5 +1633,89 @@ class TestWindowsLauncher(unittest.TestCase):
 
 
 
+class TestKeyboardPicker(unittest.TestCase):
+    def catalog(self):
+        from uat.catalog import Pack
+        return Catalog([
+            Pack("a", "Alpha", "core", "First"),
+            Pack("b", "Beta", "optional", "Second", requires=("a",)),
+            Pack("c", "Charlie", "optional", "Third"),
+        ], {})
+
+    def pick(self, keys, recommended=None):
+        from uat.picker import select_packs
+        frames = []
+        result = select_packs(self.catalog(), recommended or set(), set(),
+                              iter(keys).__next__, lambda lines: frames.append(lines))
+        return result, frames
+
+    def test_arrows_space_and_enter_expand_dependencies(self):
+        result, frames = self.pick(["down", " ", "enter"])
+        self.assertEqual(result, {"a", "b"})
+        self.assertTrue(any("> [x] Beta" in line for line in frames[-1]))
+
+    def test_enter_keeps_recommendations_and_space_can_remove(self):
+        self.assertEqual(self.pick(["enter"], {"c"})[0], {"c"})
+        self.assertEqual(self.pick([" ", "enter"], {"a"})[0], set())
+
+    def test_all_none_reset_and_boundary_navigation(self):
+        self.assertEqual(self.pick(["a", "enter"])[0], {"a", "b", "c"})
+        self.assertEqual(self.pick(["a", "n", "enter"])[0], set())
+        self.assertEqual(self.pick(["a", "r", "enter"], {"c"})[0], {"c"})
+        self.assertEqual(self.pick(["up", " ", "enter"])[0], {"a"})
+        self.assertEqual(self.pick(["down"] * 5 + [" ", "enter"])[0], {"c"})
+
+    def test_escape_cancels_instead_of_accepting(self):
+        with self.assertRaisesRegex(ToolkitError, "cancelled"):
+            self.pick(["escape"])
+
+    def test_small_terminal_scrolls_to_focused_item(self):
+        with patch("shutil.get_terminal_size", return_value=os.terminal_size((45, 9))):
+            result, frames = self.pick(["down", "down", " ", "enter"])
+        self.assertEqual(result, {"c"})
+        self.assertTrue(any("> [x] Charlie" in line for line in frames[-1]))
+        self.assertLessEqual(len(frames[-1]), 8)
+        self.assertTrue(all(len(line) <= 44 for line in frames[-1]))
+
+    @unittest.skipIf(os.name == "nt", "requires a Unix PTY")
+    def test_real_terminal_arrows_and_restore_after_cancel(self):
+        import pty
+        import termios
+        from uat.picker import keyboard
+        master, slave = pty.openpty()
+        before = termios.tcgetattr(slave)
+        try:
+            with os.fdopen(os.dup(slave), "r") as source, os.fdopen(os.dup(slave), "w") as output:
+                with patch("sys.stdin", source), patch("sys.stdout", output), patch.dict(os.environ, TERM="xterm"):
+                    with self.assertRaisesRegex(ToolkitError, "cancelled"):
+                        with keyboard() as read_key:
+                            self.assertFalse(termios.tcgetattr(slave)[3] & termios.ECHO)
+                            os.write(master, b"\x1b[B \r")
+                            self.assertEqual([read_key(), read_key(), read_key()], ["down", " ", "enter"])
+                            os.write(master, b"\x1b")
+                            self.assertEqual(read_key(), "escape")
+                            raise ToolkitError("cancelled")
+            after = termios.tcgetattr(slave)
+            # macOS may set PENDIN while restoring canonical input.
+            after[3] &= ~getattr(termios, "PENDIN", 0)
+            before[3] &= ~getattr(termios, "PENDIN", 0)
+            self.assertEqual(after, before)
+            self.assertIn(b"\x1b[?25h\x1b[?1049l", os.read(master, 4096))
+        finally:
+            os.close(master)
+            os.close(slave)
+
+    def test_windows_extended_keys(self):
+        from uat.picker import windows_key
+        crt = MagicMock()
+        with patch.dict(sys.modules, msvcrt=crt):
+            for sequence, expected in ((["\xe0", "H"], "up"),
+                                       (["\x00", "P"], "down"),
+                                       (["\r"], "enter"), ([" "], " "),
+                                       (["\x1b"], "escape")):
+                crt.getwch.side_effect = sequence
+                self.assertEqual(windows_key(), expected)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
