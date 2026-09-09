@@ -416,13 +416,27 @@ def cmd_install(args) -> int:
             print(f"  {c.path}  {dim(c.detail)}")
         print(dim("  re-run with --force to replace them"))
 
+    if (result.ok and sys.platform == "win32" and not args.no_path
+            and not args.embed and (TOOLKIT_ROOT / "bin" / "uat.cmd").is_file()
+            and not inst.uat_on_path()):
+        from .windows import add_to_user_path
+
+        try:
+            add_to_user_path(str(TOOLKIT_ROOT / "bin"))
+            print(green("  uat is registered on your user PATH."))
+            print(dim("  Restart your terminal application to use `uat`, or refresh $env:Path."))
+            result.notes = [n for n in result.notes if "not on your PATH" not in n]
+        except OSError as exc:
+            print(yellow(f"  Could not update user PATH: {exc}"))
+
     if result.notes:
         print()
         print(bold("Manual steps required:"))
         for n in dict.fromkeys(result.notes):
             print(f"  - {n}")
 
-    if interactive and not args.embed and not inst.uat_on_path():
+    if (interactive and sys.platform != "win32" and not args.no_path
+            and not args.embed and not inst.uat_on_path()):
         _offer_path_symlink(TOOLKIT_ROOT)
 
     print()
@@ -861,6 +875,8 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--add", nargs="*", default=[], metavar="ID", help="add packs to the selection")
     i.add_argument("--all", action="store_true", help="install every pack")
     i.add_argument("--yes", "-y", action="store_true", help="no prompts")
+    i.add_argument("--no-path", action="store_true",
+                   help="skip Windows user PATH setup and Unix PATH prompt")
     i.add_argument("--force", action="store_true", help="replace conflicting files")
     i.add_argument("--dry-run", action="store_true", help="show what would change")
     i.add_argument("--copy", action="store_true", help="copy skills instead of symlinking")

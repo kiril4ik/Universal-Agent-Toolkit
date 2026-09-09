@@ -89,7 +89,7 @@ vendor/` are build material, not something you copy into an app. Keep one
 copy anywhere:
 
 ```bash
-git clone <this repo> ~/tools/universal-agent-toolkit
+git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git ~/tools/universal-agent-toolkit
 ~/tools/universal-agent-toolkit/bin/uat install --project ~/code/my-app --agent claude-code
 ```
 
@@ -127,11 +127,26 @@ You can also embed later, into an already-configured project:
 
 ## Quick start
 
-Run it from the checkout as `./bin/uat`. To type just `uat` from anywhere,
+**Windows (PowerShell):**
+
+```powershell
+git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git "$HOME/tools/universal-agent-toolkit"
+cd "$HOME/tools/universal-agent-toolkit"
+.\bin\uat.cmd install --project "$HOME/code/my-app" --agent claude-code
+```
+
+The first successful non-embedded Windows install adds `bin` to your user PATH
+automatically, including with `--yes`. Restart your terminal application to run
+`uat` from anywhere. Use `--no-path` to opt out; `--dry-run` never changes PATH.
+See [installation by operating system](docs/GETTING-STARTED.md) for prerequisites,
+PowerShell PATH refresh, and manual setup.
+
+**macOS / Linux:** Run it from the checkout as `./bin/uat`. To type just `uat` from anywhere,
 symlink it onto your PATH — the launcher resolves symlinks, so it still finds
 its own catalog:
 
 ```bash
+mkdir -p ~/.local/bin
 ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
 ```
 
@@ -461,18 +476,19 @@ generated config.
 - **Only what is asked for.** Selecting one agent never creates another's files.
 - **Pointers, not copies.** Tool files route to the canonical content.
 - **No silent overwrite.** Existing files are kept and reported; `--force` is explicit.
-- **Nothing global.** No global installs, ever.
+- **Project-local configuration.** Windows installation also registers the CLI on your user PATH; `--no-path` opts out.
 - **Data is valuable.** Destructive operations are gated, including locally.
 - **Evidence before claims.** See [`catalog/core/VERIFICATION.md`](catalog/core/VERIFICATION.md).
 
 ## Requirements
 
-Python 3.9+ and git. No dependencies, no install step, no build.
+Python 3.9+ and Git. Bash on macOS/Linux; PowerShell or Command Prompt on
+Windows. No Python packages or build step. See [OS setup](docs/GETTING-STARTED.md).
 
 ## Tests
 
 ```bash
-./bin/uat-test     # 166 tests
+./bin/uat-test     # test suite
 ./bin/uat doctor   # verify catalog, registry and vendored snapshots
 ```
 

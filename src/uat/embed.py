@@ -58,6 +58,9 @@ checkout is needed to change its agent configuration.
 .agent-toolkit/toolkit/uat install --project . --agent claude-code --add go
 ```
 
+On Windows PowerShell, use `.\\.agent-toolkit\\toolkit\\uat.cmd` in place of
+`.agent-toolkit/toolkit/uat`.
+
 ## What is here
 
 ```
@@ -113,6 +116,12 @@ def embed(
     write_text(dest / "uat", LAUNCHER, force=True, report=report)
     if not report.dry_run:
         (dest / "uat").chmod(0o755)
+
+    windows_launcher = toolkit_root / "bin" / "uat.cmd"
+    if not windows_launcher.is_file():
+        windows_launcher = toolkit_root / "uat.cmd"
+    if windows_launcher.is_file():
+        copy_file(windows_launcher, dest / "uat.cmd", force=force, report=report)
 
     version = _version(toolkit_root)
     write_text(

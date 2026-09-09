@@ -620,8 +620,9 @@ def execute(
         result.notes.append(
             "`uat` is not on your PATH, but the generated .agent-toolkit/CORE.md "
             "tells the agent to run it (phase 05 installs the stack's rule packs). "
-            "Symlink it: ln -s " + str(toolkit_root / "bin" / "uat")
-            + " ~/.local/bin/uat"
+            + ("Add " + str(toolkit_root / "bin") + " to your user PATH and restart your terminal."
+             if os.name == "nt" else "Symlink it: ln -s "
+             + str(toolkit_root / "bin" / "uat") + " ~/.local/bin/uat")
         )
 
     # 7. state

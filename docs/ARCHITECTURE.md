@@ -428,3 +428,16 @@ Separately, a phase whose report exists but whose declared artifact does not is
 now reported as a **gap** rather than done. A report claiming completion of
 phase 06 without `docs/architecture.md` is not a completed phase, and printing
 a warning underneath a green label was too easy to read past.
+
+
+## Windows entry point and PATH
+
+`bin/uat.cmd` invokes the same Python CLI as `bin/uat`, from PowerShell or
+Command Prompt. Embedded copies carry `uat.cmd` alongside the Bash launcher.
+A successful external Windows installation registers the checkout's `bin`
+directory in the current user's PATH when `uat` is missing. It preserves
+existing entries and their registry type, updates the installer process's
+PATH, and broadcasts an environment-change notification. Existing terminals
+need a refresh or restart. `--no-path` opts out; dry runs never touch PATH.
+This is CLI discoverability, separate from project configuration. Uninstalling
+one project does not remove the shared checkout's PATH entry.

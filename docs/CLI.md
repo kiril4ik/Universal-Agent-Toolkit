@@ -5,7 +5,10 @@ uat [--verbose] <command> [options]
 ```
 
 `uat` is `./bin/uat` from a toolkit checkout, or `.agent-toolkit/toolkit/uat`
-inside an embedded project. `--verbose` is global and makes the change report
+inside an embedded project. On Windows PowerShell use `.\bin\uat.cmd` or
+`.\.agent-toolkit\toolkit\uat.cmd`, respectively. A successful Windows
+non-embedded install sets up user PATH automatically; see
+[PATH setup](GETTING-STARTED.md#2a-path-setup). `--verbose` is global and makes the change report
 list unchanged files too, not only additions and conflicts.
 
 Every command that touches a project takes `--project PATH` (default: the
@@ -107,7 +110,7 @@ and is pre-selected when that token is present.
 ```
 uat install [--project PATH] [--agent ID]... [--mode MODE]
             [--profile NAME] [--packs ID...] [--add ID...] [--all]
-            [--yes] [--force] [--dry-run] [--copy] [--replace]
+            [--yes] [--no-path] [--force] [--dry-run] [--copy] [--replace]
             [--embed] [--with-vendor]
 ```
 
@@ -171,6 +174,7 @@ recorded configuration over.
 | `--dry-run` | print every change, write nothing; also skips all prompts |
 | `--yes`, `-y` | no prompts; use the recommendation |
 | `--force` | overwrite conflicting files that the toolkit does not own |
+| `--no-path` | skip automatic Windows user PATH setup and the Unix symlink prompt |
 | `--copy` | copy skills instead of symlinking (filesystems without symlink support) |
 
 Without `--force`, an existing file the toolkit did not write is **kept and

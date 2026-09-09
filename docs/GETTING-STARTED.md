@@ -1,62 +1,134 @@
 # Getting started
 
-Fifteen minutes, one project, no global state.
+Fifteen minutes, one project. Windows setup also registers the CLI on your user PATH.
 
 ## 1. Requirements
 
-Python 3.9+ and git. Nothing else — no dependencies, no install step, no
-build. `bin/uat` is a bash launcher that execs `python3`.
+Python 3.9+ and Git. No Python packages or build step. The command is **`uat`**;
+install the toolkit by cloning this repository.
+
+### macOS
+
+With [Homebrew](https://brew.sh/) installed:
 
 ```bash
+brew install python git
 python3 --version
 git --version
 ```
 
-## 2. Clone the toolkit once
+### Linux / WSL
 
-**Not into your project.** This repository is the factory. Keep one copy
-anywhere and use it to configure as many projects as you like.
+Ubuntu and Debian:
 
 ```bash
-git clone <this repo> ~/tools/universal-agent-toolkit
-cd ~/tools/universal-agent-toolkit
-./bin/uat doctor     # catalog, registry and vendor snapshots all verify
+sudo apt update
+sudo apt install python3 git
 ```
 
-`doctor` should end with `healthy`. If a vendor line says anything other than
-`verified`, run `./bin/uat vendor sync` — see
-[Vendoring & provenance](VENDORING.md).
-
-## 2a. Optional: put `uat` on your PATH
-
-Every example below writes `./bin/uat`, which always works from the checkout.
-If you would rather type `uat` from anywhere, symlink the launcher into a
-directory already on your PATH:
+Fedora:
 
 ```bash
-ln -s ~/tools/universal-agent-toolkit/bin/uat      ~/.local/bin/uat
-ln -s ~/tools/universal-agent-toolkit/bin/uat-test ~/.local/bin/uat-test
+sudo dnf install python3 git
+```
+
+Check `python3 --version` is at least 3.9. WSL uses these Linux instructions
+and its own checkout and PATH.
+
+### Windows (PowerShell or Command Prompt)
+
+Install [Python for Windows](https://www.python.org/downloads/windows/) and
+[Git for Windows](https://git-scm.com/install/windows). For Git, the WinGet
+package is `Git.Git` (`winget install --id Git.Git -e`). Enable Python's PATH
+option if offered by its installer. Open a new terminal and check:
+
+```powershell
+py -3 --version
+git --version
+```
+
+The launcher tries `py -3`, then `python`, then `python3`, requiring Python
+3.9+. It is a `.cmd` file usable from PowerShell and Command Prompt, without
+a PowerShell execution-policy change. Bash-based packs, such as the session
+reminder, still need Bash; use Git Bash or WSL for those scripts. Ubuntu
+deployment scripts run on Ubuntu.
+
+## 2. Clone the toolkit and install
+
+Keep the checkout outside your application. One checkout can configure many
+projects.
+
+### macOS / Linux
+
+```bash
+git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git ~/tools/universal-agent-toolkit
+cd ~/tools/universal-agent-toolkit
+./bin/uat doctor
+./bin/uat install --project ~/code/my-app --agent claude-code
+```
+
+### Windows PowerShell
+
+```powershell
+git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git "$HOME/tools/universal-agent-toolkit"
+cd "$HOME/tools/universal-agent-toolkit"
+.\bin\uat.cmd doctor
+.\bin\uat.cmd install --project "$HOME/code/my-app" --agent claude-code
+```
+
+`doctor` should end with `healthy`. See [Vendoring & provenance](VENDORING.md)
+if snapshot verification fails. Add `--dry-run` to preview installation or
+`--yes` to accept the recommended selection without prompts.
+
+## 2a. PATH setup
+
+### Windows: automatic on first installation
+
+A successful non-embedded `install` adds the checkout's `bin` directory to
+**your user PATH** if `uat` is not already available. This also happens with
+`--yes`; no administrator access is needed. Existing PATH entries are
+preserved, and repeat installs do not add duplicates. `--no-path` skips this
+setup; `--dry-run`, failed installs, and `--embed` do not change PATH.
+
+Restart your terminal application (and IDE if its terminal is embedded), or
+refresh the current PowerShell session:
+
+```powershell
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 uat doctor
 ```
 
-The launcher resolves the symlink chain, so it finds its own `src/` and
-`catalog/` no matter where the link lives. Adding the `bin/` directory to
-PATH works too:
+An already-running shell retains its inherited environment; see Microsoft's
+[environment documentation](https://learn.microsoft.com/en-us/windows/win32/procthread/environment-variables).
+
+For manual setup, open **Edit environment variables for your account**, edit
+**Path**, and add the full checkout `bin` path, for example
+`C:\Users\you\tools\universal-agent-toolkit\bin`. Restart your terminal.
+Remove that entry to undo setup, or update it if you move the checkout.
+Project uninstall leaves this shared CLI entry available for other projects.
+
+### macOS / Linux
+
+The first interactive install offers to symlink `uat` into a writable
+user-owned directory already on PATH. `--yes` and `--no-path` skip that prompt.
+For manual setup:
 
 ```bash
-echo 'export PATH="$PATH:$HOME/tools/universal-agent-toolkit/bin"' >> ~/.zshrc
+mkdir -p ~/.local/bin
+ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
+ln -s ~/tools/universal-agent-toolkit/bin/uat-test ~/.local/bin/uat-test
+export PATH="$HOME/.local/bin:$PATH"
+uat doctor
 ```
 
-Nothing else is needed — there is no install step, and the toolkit never
-writes to your shell configuration itself.
+To persist the `export`, add it once to `~/.zshrc` (zsh) or `~/.bashrc` (Bash),
+then open a new terminal. The launcher resolves symlinks to find its catalog.
 
-If you skip this, `uat install` will notice: a non-embedded install writes
-bare `uat` into the project's `CORE.md`, and workflow phase 05 runs it to
-install the stack's rule packs. The installer reports that under **Manual
-steps required**, and on a terminal offers to create the symlink.
-
-> The rest of these pages write `uat` for brevity. Read it as `./bin/uat`
-> from a checkout, or `.agent-toolkit/toolkit/uat` in an embedded project.
+The examples below use `./bin/uat` from the checkout. In Windows PowerShell,
+substitute `.\bin\uat.cmd` and use paths such as `"$HOME/code/my-app"`.
+After PATH setup, use `uat` from anywhere. For embedded projects, use
+`.agent-toolkit/toolkit/uat` on Unix or
+`.\.agent-toolkit\toolkit\uat.cmd` in Windows PowerShell.
 
 ## 3. Look before you install
 

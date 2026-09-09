@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1380,6 +1381,15 @@ class TestEmbedding(TempProject):
         top = {p.name for p in self.project.iterdir()}
         self.assertTrue(top.issubset({".agent-toolkit", ".claude", ".mcp.json", "CLAUDE.md"}))
 
+    def test_windows_launcher_is_embedded_and_preserves_edits(self):
+        dest = self.embed()
+        self.assertEqual((dest / "uat.cmd").read_bytes(), (ROOT / "bin/uat.cmd").read_bytes())
+        (dest / "uat.cmd").write_text("local edit")
+        report = Report()
+        embedlib.embed(ROOT, self.project, with_vendor=False, force=False, report=report)
+        self.assertEqual((dest / "uat.cmd").read_text(), "local edit")
+        self.assertTrue(report.conflicts())
+
     def test_embedded_launcher_is_executable(self):
         dest = self.embed()
         self.assertTrue(os.access(dest / "uat", os.X_OK))
@@ -1563,6 +1573,64 @@ class TestWorkflowShipped(TempProject):
         core = self.project / ".agent-toolkit/core"
         for f in ("SAFETY.md", "GIT.md", "VERIFICATION.md", "INTERACTION_MODES.md"):
             self.assertTrue((core / f).exists(), f)
+
+
+
+class TestWindowsPath(unittest.TestCase):
+    def test_preserves_user_path_and_does_not_duplicate(self):
+        from uat import windows
+        registry = MagicMock()
+        registry.REG_EXPAND_SZ = 2
+        state = {"value": (r"%USERPROFILE%\tools;C:\Other", 2)}
+        registry.QueryValueEx.side_effect = lambda *a: state["value"]
+        registry.SetValueEx.side_effect = lambda k, n, reserved, kind, value: state.update(value=(value, kind))
+        with patch.dict(sys.modules, winreg=registry), patch.dict(os.environ), patch.object(windows, "_notify_environment"):
+            windows.add_to_user_path(r"C:\My Tools\bin")
+            self.assertEqual(state["value"], (r"%USERPROFILE%\tools;C:\Other;C:\My Tools\bin", 2))
+            windows.add_to_user_path("c:/my tools/BIN/")
+            self.assertEqual(state["value"], (r"%USERPROFILE%\tools;C:\Other;C:\My Tools\bin", 2))
+
+    def test_missing_user_path_is_created(self):
+        from uat import windows
+        registry = MagicMock()
+        registry.REG_EXPAND_SZ = 2
+        registry.QueryValueEx.side_effect = FileNotFoundError
+        values = []
+        registry.SetValueEx.side_effect = lambda k, n, reserved, kind, value: values.append((value, kind))
+        with patch.dict(sys.modules, winreg=registry), patch.dict(os.environ), patch.object(windows, "_notify_environment"):
+            windows.add_to_user_path(r"C:\Tools\bin")
+        self.assertEqual(values, [(r"C:\Tools\bin", 2)])
+
+    def test_install_dry_run_and_opt_out_leave_path_alone(self):
+        from uat.cli import main
+        with tempfile.TemporaryDirectory() as tmp, patch("uat.cli.sys.platform", "win32"), patch("uat.windows.add_to_user_path") as add, patch("uat.install.uat_on_path", return_value=False):
+            for flag in ("--dry-run", "--no-path"):
+                self.assertEqual(main(["install", "--project", tmp, "--agent", "cursor", "--profile", "core", "--yes", flag]), 0)
+            add.assert_not_called()
+
+    def test_successful_yes_install_sets_path(self):
+        from uat.cli import main
+        with tempfile.TemporaryDirectory() as tmp, patch("uat.cli.sys.platform", "win32"), patch("uat.windows.add_to_user_path") as add, patch("uat.install.uat_on_path", return_value=False):
+            self.assertEqual(main(["install", "--project", tmp, "--agent", "cursor", "--profile", "core", "--yes"]), 0)
+            add.assert_called_once_with(str(ROOT / "bin"))
+
+
+
+@unittest.skipUnless(os.name == "nt", "requires native Windows")
+class TestWindowsLauncher(unittest.TestCase):
+    def test_powershell_launcher_forwards_paths_and_exit_status(self):
+        with tempfile.TemporaryDirectory(prefix="uat space ") as tmp:
+            checkout = Path(tmp) / "toolkit space"
+            shutil.copytree(ROOT / "src", checkout / "src")
+            (checkout / "bin").mkdir()
+            shutil.copy2(ROOT / "bin/uat.cmd", checkout / "bin/uat.cmd")
+            env = {**os.environ, "PATH": str(checkout / "bin") + ";" + os.environ["PATH"]}
+            for arguments, expected in (("--help", 0), ("unknown-command", 2)):
+                result = subprocess.run(["powershell.exe", "-NoProfile", "-Command",
+                                         "uat " + arguments + "; exit $LASTEXITCODE"],
+                                        cwd=tmp, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+
 
 
 if __name__ == "__main__":
