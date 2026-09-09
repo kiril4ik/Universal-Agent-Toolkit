@@ -175,22 +175,26 @@ How autonomous should the agent be?
 pre-checked and the evidence shown:
 
 ```
-Select skills and packs to install
-Up/Down: move  Space: toggle  Enter: accept
-Esc: cancel  a: all  n: none  r: reset
+Select packs to install
+  Up/Down=move  Space=toggle  Enter=accept  Esc=cancel
+  a=all  n=none  r=reset
 
-> [x] Karpathy guidelines (core)
-  [x] Security & OWASP (core)
-  [x] Superpowers engineering skills (core)
-  [x] Accessibility (a11y) (recommended)
-  [ ] Ubuntu deployment (recommended)
-  [x] Docker & containers (recommended) detected: docker
+  CORE
+>    1 [x] Engineering principles (SOLID, DRY, KISS)  always
+     2 [x] Karpathy guidelines                 always
+     3 [x] Security & OWASP                    always
+     4 [x] Superpowers engineering skills      always
+  RECOMMENDED
+     5 [x] Accessibility (a11y)                detected: frontend
+     6 [ ] Ubuntu deployment (clean + existing server)
+     7 [x] Docker & containers                 detected: docker
   ...
 ```
 
 Use **Up/Down** to move, **Space** to select or deselect, and **Enter** to
 confirm. **Esc** or **Ctrl+C** cancels installation. The list scrolls with the
-cursor, so no item numbers are needed. **A** selects all, **N** clears the
+cursor and keeps the category headings visible. Row numbers are labels;
+you do not type them to select items. **A** selects all, **N** clears the
 selection, and **R** restores recommendations. Dependencies are added when
 you confirm. Skills are selected through their installable packs.
 

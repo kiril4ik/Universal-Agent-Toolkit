@@ -1652,7 +1652,7 @@ class TestKeyboardPicker(unittest.TestCase):
     def test_arrows_space_and_enter_expand_dependencies(self):
         result, frames = self.pick(["down", " ", "enter"])
         self.assertEqual(result, {"a", "b"})
-        self.assertTrue(any("> [x] Beta" in line for line in frames[-1]))
+        self.assertTrue(any(">    2 [x] Beta" in line for line in frames[-1]))
 
     def test_enter_keeps_recommendations_and_space_can_remove(self):
         self.assertEqual(self.pick(["enter"], {"c"})[0], {"c"})
@@ -1673,9 +1673,20 @@ class TestKeyboardPicker(unittest.TestCase):
         with patch("shutil.get_terminal_size", return_value=os.terminal_size((45, 9))):
             result, frames = self.pick(["down", "down", " ", "enter"])
         self.assertEqual(result, {"c"})
-        self.assertTrue(any("> [x] Charlie" in line for line in frames[-1]))
+        self.assertTrue(any(">    3 [x] Charlie" in line for line in frames[-1]))
         self.assertLessEqual(len(frames[-1]), 8)
         self.assertTrue(all(len(line) <= 44 for line in frames[-1]))
+
+    def test_original_categories_alignment_and_colors_are_preserved(self):
+        with patch("uat.util._C", True), patch(
+                "shutil.get_terminal_size", return_value=os.terminal_size((100, 24))):
+            _, frames = self.pick(["enter"], {"a"})
+        lines = frames[0]
+        self.assertIn("\x1b[1mSelect packs to install\x1b[0m", lines)
+        self.assertIn("  \x1b[1mCORE\x1b[0m", lines)
+        self.assertIn("  \x1b[1mOPTIONAL\x1b[0m", lines)
+        self.assertIn(">    1 [\x1b[32mx\x1b[0m] Alpha                             \x1b[2m  always\x1b[0m", lines)
+        self.assertLess(lines.index("  \x1b[1mCORE\x1b[0m"), lines.index("  \x1b[1mOPTIONAL\x1b[0m"))
 
     @unittest.skipIf(os.name == "nt", "requires a Unix PTY")
     def test_real_terminal_arrows_and_restore_after_cancel(self):

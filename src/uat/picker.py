@@ -2,10 +2,11 @@
 
 from contextlib import contextmanager
 import os
+import re
 import shutil
 import sys
 
-from .util import ToolkitError
+from .util import ToolkitError, bold, dim, green
 
 
 def windows_key():
@@ -91,26 +92,54 @@ def _draw(lines):
     sys.stdout.flush()
 
 
+def _clip(line, width):
+    """Clip visible text without splitting terminal color sequences."""
+    parts = []
+    remaining = width
+    for part in re.split(r"(\x1b\[[0-9;]*m)", line):
+        if part.startswith("\x1b["):
+            parts.append(part)
+        else:
+            parts.append(part[:remaining])
+            remaining -= min(remaining, len(part))
+    return "".join(parts)
+
+
 def select_packs(catalog, recommended, tokens, read_key, draw):
     selected = set(recommended)
     items = list(catalog)
     cursor = 0
+    start = 0
     while True:
         width, height = shutil.get_terminal_size((80, 24))
-        page = max(1, height - 7)
-        start = max(0, cursor - page + 1)
-        lines = ["Select skills and packs to install",
-                 "Up/Down: move  Space: toggle  Enter: accept",
-                 "Esc: cancel  a: all  n: none  r: reset", ""]
-        for idx in range(start, min(len(items), start + page)):
-            pack = items[idx]
-            hits = sorted(set(pack.detect) & tokens)
-            why = " detected: " + hits[0] if hits else ""
-            mark = "x" if pack.id in selected else " "
-            focus = ">" if idx == cursor else " "
-            lines.append(f"{focus} [{mark}] {pack.title} ({pack.tier}){why}")
-        lines += ["", f"{len(selected)} selected; dependencies added on accept"]
-        draw([line[:max(1, width - 1)] for line in lines])
+        capacity = max(2, height - 6)
+        start = min(start, cursor)
+        while True:
+            rows = []
+            last_tier = None
+            visible = []
+            for idx in range(start, len(items)):
+                pack = items[idx]
+                new_tier = pack.tier != last_tier
+                if len(rows) + 1 + int(new_tier) > capacity:
+                    break
+                if new_tier:
+                    rows.append(f"  {bold(pack.tier.upper())}")
+                    last_tier = pack.tier
+                hits = sorted(set(pack.detect) & tokens)
+                why = dim("  detected: " + hits[0]) if hits else (
+                    dim("  always") if pack.tier == "core" else "")
+                mark = green("x") if pack.id in selected else " "
+                prefix = ">  " if idx == cursor else "   "
+                rows.append(f"{prefix}{idx + 1:>3} [{mark}] {pack.title:<34}{why}")
+                visible.append(idx)
+            if not items or cursor in visible:
+                break
+            start += 1
+        lines = [bold("Select packs to install"),
+                 dim("  Up/Down=move  Space=toggle  Enter=accept  Esc=cancel"),
+                 dim("  a=all  n=none  r=reset"), "", *rows, ""]
+        draw([_clip(line, max(1, width - 1)) for line in lines])
         key = read_key()
         if key == "enter":
             return catalog.expand(selected)
