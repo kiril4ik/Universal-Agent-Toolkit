@@ -119,7 +119,7 @@ def build_plan(
 
     if all_packs:
         selected = set(catalog.ids)
-    elif explicit_packs:
+    elif explicit_packs is not None:
         selected = catalog.expand(set(explicit_packs))
     elif profile:
         selected = catalog.resolve_profile(profile)

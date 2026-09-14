@@ -113,7 +113,7 @@ def embed(
             copy_tree(vsrc, dest / "vendor", force=force, report=report)
             vendor_files = sum(1 for _ in iter_files(vsrc))
 
-    write_text(dest / "uat", LAUNCHER, force=True, report=report)
+    write_text(dest / "uat", LAUNCHER, force=force, report=report)
     if not report.dry_run:
         (dest / "uat").chmod(0o755)
 
@@ -130,7 +130,7 @@ def embed(
             version=version,
             vendor_note="" if with_vendor else "  (NOT embedded - see below)",
         ),
-        force=True,
+        force=force,
         report=report,
     )
 
@@ -144,7 +144,7 @@ def embed(
                 .isoformat(),
                 "with_vendor": with_vendor,
                 "vendor_files": vendor_files,
-                "source": str(toolkit_root),
+                "source": "external toolkit checkout",
                 "_note": (
                     "This project carries its own copy of the toolkit. "
                     "Run .agent-toolkit/toolkit/uat from the project root."
@@ -155,7 +155,7 @@ def embed(
                 ),
             }
         ),
-        force=True,
+        force=force,
         report=report,
     )
     return dest

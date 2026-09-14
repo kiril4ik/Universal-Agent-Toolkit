@@ -176,7 +176,7 @@ def _resolve_selection(args, registry, catalog, project):
     detection = detect(project)
     if args.all:
         recommended = set(catalog.ids)
-    elif args.packs:
+    elif args.packs is not None:
         recommended = catalog.expand(set(args.packs))
     elif args.profile:
         recommended = catalog.resolve_profile(args.profile)
@@ -250,6 +250,9 @@ def _offer_path_symlink(toolkit_root: Path) -> None:
 
 
 def cmd_install(args) -> int:
+    if args.with_vendor and not args.embed:
+        raise ToolkitError("--with-vendor requires --embed")
+
     registry, catalog = _load(TOOLKIT_ROOT)
     project = _project(args)
 
@@ -319,6 +322,10 @@ def cmd_install(args) -> int:
     print()
 
     if args.dry_run:
+        if args.embed:
+            _do_embed(project, with_vendor=args.with_vendor, force=args.force,
+                      verbose=args.verbose, dry_run=True)
+            print()
         result = inst.execute(plan, TOOLKIT_ROOT, force=args.force, dry_run=True)
         print(bold("Dry run - no changes written"))
         rendered = result.report.render(project, verbose=args.verbose)
@@ -389,7 +396,10 @@ def cmd_install(args) -> int:
     return 0 if result.ok else 2
 
 
-def _do_embed(project: Path, *, with_vendor: bool, force: bool, verbose: bool) -> None:
+def _do_embed(
+    project: Path, *, with_vendor: bool, force: bool, verbose: bool,
+    dry_run: bool = False,
+) -> None:
     """Copy the toolkit into the project's .agent-toolkit/toolkit/."""
     size = embedlib.estimate_size(TOOLKIT_ROOT, with_vendor=with_vendor)
     print(bold("Embedding the toolkit into the project"))
@@ -397,7 +407,7 @@ def _do_embed(project: Path, *, with_vendor: bool, force: bool, verbose: bool) -
     print(f"  vendored     {'yes - fully offline' if with_vendor else 'no'}")
     print(f"  adds         ~{embedlib.human(size)}")
 
-    report = Report()
+    report = Report(dry_run=dry_run)
     dest = embedlib.embed(
         TOOLKIT_ROOT, project, with_vendor=with_vendor, force=force, report=report
     )

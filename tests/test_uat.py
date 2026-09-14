@@ -1436,6 +1436,37 @@ class TestEmbedding(TempProject):
         self.assertTrue(embedlib.is_embedded(dest))
         self.assertFalse(embedlib.is_embedded(ROOT))
 
+    def test_embedded_marker_does_not_leak_source_checkout(self):
+        dest = self.embed()
+        self.assertNotIn(str(ROOT), (dest / "EMBEDDED.json").read_text())
+
+    def test_embed_dry_run_previews_launcher_without_writing(self):
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        result = subprocess.run(
+            [str(ROOT / "bin/uat"), "install", "--project", str(empty),
+             "--agent", "claude-code", "--embed", "--dry-run"],
+            capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(".agent-toolkit/toolkit/uat", result.stdout)
+        self.assertFalse((empty / ".agent-toolkit").exists())
+
+
+class TestInstallArgumentSemantics(TempProject):
+    def test_explicit_empty_pack_list_stays_empty(self):
+        plan = inst.build_plan(
+            ROOT, self.project, registry=self.registry, catalog=self.catalog,
+            agent_keys=["claude-code"], mode="focused", explicit_packs=[])
+        self.assertEqual(plan.pack_ids, [])
+
+    def test_with_vendor_requires_embed(self):
+        from uat.cli import main
+
+        self.assertEqual(main([
+            "install", "--project", str(self.project), "--agent", "claude-code",
+            "--with-vendor", "--yes",
+        ]), 1)
+
 
 class TestEngineeringPrinciples(TempProject):
     """SOLID/DRY/KISS must reach every project, and not fight the core rules."""
