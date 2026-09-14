@@ -2,6 +2,7 @@
   "id": "docker",
   "title": "Docker & containers",
   "tier": "recommended",
+  "category": "infrastructure",
   "tags": [
     "infra"
   ],

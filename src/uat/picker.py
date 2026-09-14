@@ -116,19 +116,19 @@ def select_packs(catalog, recommended, tokens, read_key, draw):
         start = min(start, cursor)
         while True:
             rows = []
-            last_tier = None
+            last_category = None
             visible = []
             for idx in range(start, len(items)):
                 pack = items[idx]
-                new_tier = pack.tier != last_tier
-                if len(rows) + 1 + int(new_tier) > capacity:
+                new_category = pack.category != last_category
+                if len(rows) + 1 + int(new_category) > capacity:
                     break
-                if new_tier:
-                    rows.append(f"  {bold(pack.tier.upper())}")
-                    last_tier = pack.tier
+                if new_category:
+                    rows.append(f"  {bold(pack.category.replace('-', ' ').upper())}")
+                    last_category = pack.category
                 hits = sorted(set(pack.detect) & tokens)
                 why = dim("  detected: " + hits[0]) if hits else (
-                    dim("  always") if pack.tier == "core" else "")
+                    dim("  default") if pack.tier == "core" else "")
                 mark = green("x") if pack.id in selected else " "
                 prefix = ">  " if idx == cursor else "   "
                 rows.append(f"{prefix}{idx + 1:>3} [{mark}] {pack.title:<34}{why}")

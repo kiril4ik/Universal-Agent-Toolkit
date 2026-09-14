@@ -1,0 +1,16 @@
+{
+  "id": "ponytail",
+  "repo": "https://github.com/DietrichGebert/ponytail.git",
+  "ref": "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156",
+  "license": "MIT",
+  "include": [
+    "AGENTS.md",
+    "skills",
+    "LICENSE",
+    "README.md"
+  ],
+  "content_sha256": "aaf7da1b8b31aefc365533b1a9cbebb928180228fe6b9a00fc442311ebbd951b",
+  "fetched_at": "2026-09-14T22:01:36+00:00",
+  "notes": "Ponytail's minimal-change engineering rule and its audit, debt, gain, help, and review companion skills.",
+  "_policy": "Verbatim upstream snapshot. Do not edit. Toolkit policy belongs in catalog/core or catalog/packs."
+}

@@ -2,6 +2,7 @@
   "id": "devcontainers",
   "title": "Dev containers",
   "tier": "optional",
+  "category": "infrastructure",
   "tags": [
     "infra"
   ],

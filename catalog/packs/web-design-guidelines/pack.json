@@ -2,6 +2,7 @@
   "id": "web-design-guidelines",
   "title": "Web design guidelines (Vercel)",
   "tier": "optional",
+  "category": "design-content",
   "tags": [
     "frontend"
   ],

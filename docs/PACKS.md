@@ -5,7 +5,7 @@ install, what to call it, and when it applies. A **profile** is a named
 bundle of packs.
 
 ```bash
-uat catalog                    # 62 packs, 6 profiles
+uat catalog                    # 64 packs, 6 profiles
 uat catalog --search wordpress # search all ~450 vendored rule documents
 uat catalog --unmapped         # vendored content no pack exposes
 ```
@@ -14,11 +14,12 @@ uat catalog --unmapped         # vendored content no pack exposes
 
 | Tier | Count | When it installs |
 |---|---|---|
-| `core` | 4 | on the detection path, and through the `core` profile |
-| `recommended` | 8 | when the detected stack asks for it |
-| `optional` | 50 | when you ask for it, or a profile includes it |
+| `core` | 5 | on the detection path, and through the `core` profile |
+| `recommended` | 10 | when the detected stack asks for it |
+| `optional` | 49 | when you ask for it, or a profile includes it |
 
-**Core** is `superpowers` (engineering-discipline skills), `security` (OWASP
+**Core** is `superpowers` (engineering-discipline skills), `ponytail`
+(minimal-change engineering and review skills), `security` (OWASP
 rules), `karpathy-guidelines` (anti-overcomplication guardrails) and
 `engineering-principles` (SOLID, DRY, KISS). Those apply to any codebase in
 any language, which is the bar for core.
@@ -31,7 +32,7 @@ any language, which is the bar for core.
 > same packs rather than relying on the tier.
 
 > A bare `uat install --agent <id> --yes` on a project with no detectable
-> stack installs the core tier only — four packs. That is the floor, not a
+> stack installs the core tier only — five packs. That is the floor, not a
 > setup. Pick a profile or use the interactive list for real work.
 
 ## How packs get selected
@@ -73,12 +74,12 @@ Symfony, Vue, MySQL or Flutter rules polluting the agent's context.
 
 | Profile | Packs | For |
 |---|---|---|
-| `core` | 6 | the floor plus safety essentials |
-| `frontend` | 10 | any browser UI |
-| `nextjs` | 18 | Next.js + React + Tailwind + TypeScript |
-| `laravel-react` | 19 | Laravel API with a React front end |
-| `python-api` | 12 | FastAPI / Django services |
-| `design` | 13 | UI/UX, design systems, Figma, visual verification |
+| `core` | 7 | the floor plus safety essentials |
+| `frontend` | 13 | any browser UI |
+| `nextjs` | 21 | Next.js + React + Tailwind + TypeScript |
+| `laravel-react` | 22 | Laravel API with a React front end |
+| `python-api` | 14 | FastAPI / Django services |
+| `design` | 16 | UI/UX, design systems, Figma, visual verification |
 
 Profiles compose with `extends`, so `nextjs` inherits everything in
 `frontend` and adds to it. Nothing is duplicated between them.
@@ -130,7 +131,7 @@ not a copy:
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   62 packs - mostly small JSON pointers
+catalog/packs/    360 KB   64 packs - mostly small JSON pointers
 ```
 
 ### Our own files
@@ -157,6 +158,7 @@ This is where our own policy goes when an upstream is wrong or missing.
 | `id` | yes | must match the directory name |
 | `title` | yes | shown in `uat catalog` and the interactive list |
 | `tier` | yes | `core` / `recommended` / `optional` |
+| `category` | no | capability group; defaults to `technology` |
 | `summary` | yes | one line: what it is and why you would want it |
 | `tags` | no | free-form grouping, e.g. `backend`, `mcp`, `frontend` |
 | `detect` | no | stack tokens that pre-select this pack |

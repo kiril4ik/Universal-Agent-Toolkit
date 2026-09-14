@@ -160,7 +160,11 @@ safe in scripts and CI.
 ./bin/uat install --project ~/app --agent claude-code
 ```
 
-Without `--yes`, and on a terminal, this is interactive. Two prompts:
+Without `--yes`, and on a terminal, setup is progressive. It asks about the
+project kind, agents, interaction mode, planning, technology additions,
+acceptance, visual validation, database backups, and image generation before
+showing the capability checklist. Every prompt has a default and a matching
+CLI flag for silent installs.
 
 **Interaction mode** — how many questions the agent should ask you:
 
@@ -171,7 +175,7 @@ How autonomous should the agent be?
   3  autonomous  decide independently; interrupt only for risky or ambiguous calls
 ```
 
-**Pack selection** — a keyboard checklist ordered by tier, with detected packs
+**Capability selection** — a keyboard checklist grouped by purpose, with detected packs
 pre-checked and the evidence shown:
 
 ```
@@ -179,15 +183,12 @@ Select packs to install
   Up/Down=move  Space=toggle  Enter=accept  Esc=cancel
   a=all  n=none  r=reset
 
-  CORE
->    1 [x] Engineering principles (SOLID, DRY, KISS)  always
-     2 [x] Karpathy guidelines                 always
-     3 [x] Security & OWASP                    always
-     4 [x] Superpowers engineering skills      always
-  RECOMMENDED
-     5 [x] Accessibility (a11y)                detected: frontend
-     6 [ ] Ubuntu deployment (clean + existing server)
-     7 [x] Docker & containers                 detected: docker
+  ENGINEERING
+>    1 [x] Engineering principles (SOLID, DRY, KISS)  default
+     2 [x] Karpathy guidelines                 default
+     3 [x] Ponytail minimal-change engineering default
+  BROWSER QUALITY
+     8 [x] Playwright MCP (browser)            detected: frontend
   ...
 ```
 
@@ -204,11 +205,13 @@ terminals. For automation or redirected input/output, use `--yes`,
 
 Then a plan, then `Proceed? [Y/n]`.
 
-`--yes` skips both prompts and installs the recommendation. See
+`--yes` accepts the policy defaults and installs the recommendation. Use flags
+such as `--planning off`, `--technology-additions auto`, `--acceptance full`,
+`--db-backups finish`, and `--image-generation ask` to make silent setup exact. See
 [Packs & profiles](PACKS.md) for what gets recommended and why.
 
 > A bare `uat install --agent <id> --yes` with no `--profile`, `--packs` or
-> detected stack installs the **core tier only** — three packs. That is a
+> detected stack installs the **core tier only** — five packs. That is a
 > deliberate floor, not a full setup. For a real project, pick a profile or
 > use the interactive list.
 

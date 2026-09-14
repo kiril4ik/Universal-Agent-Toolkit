@@ -2,6 +2,7 @@
   "id": "security",
   "title": "Security & OWASP",
   "tier": "core",
+  "category": "engineering",
   "tags": [
     "security"
   ],

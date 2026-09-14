@@ -15,9 +15,29 @@ tk="$root/.agent-toolkit"
 [ -d "$tk" ] || exit 0
 
 mode="unknown"
+planning="adaptive"
 if [ -r "$tk/project.json" ]; then
   mode="$(sed -n 's/.*"mode"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$tk/project.json" | head -1)"
   [ -n "$mode" ] || mode="unknown"
+  planning="$(sed -n 's/.*"planning"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$tk/project.json" | head -1)"
+  [ -n "$planning" ] || planning="adaptive"
+fi
+
+if [ "$planning" = "off" ]; then
+  cat <<BANNER
+<agent-toolkit>
+This project is governed by the Universal Agent Toolkit. Read
+.agent-toolkit/CORE.md before acting. Interaction mode: ${mode}. Planning is disabled.
+
+NON-NEGOTIABLE
+  1. Read .agent-toolkit/core/SAFETY.md before ANY database, migration,
+     Docker volume, deployment or server change.
+  2. Never claim work is done without running the verification command and
+     reading its output. See .agent-toolkit/core/VERIFICATION.md.
+  3. Read only the stack rules relevant to what you are touching.
+</agent-toolkit>
+BANNER
+  exit 0
 fi
 
 # Which phases have reports, so the reminder reflects real progress.

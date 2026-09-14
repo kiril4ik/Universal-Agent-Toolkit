@@ -2,6 +2,7 @@
   "id": "docker-local",
   "title": "Docker local development",
   "tier": "recommended",
+  "category": "infrastructure",
   "tags": ["infra", "local"],
   "detect": ["docker"],
   "requires": ["docker"],

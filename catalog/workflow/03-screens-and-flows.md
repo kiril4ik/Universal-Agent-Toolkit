@@ -59,6 +59,10 @@ is a design decision, not an afterthought.
 Accessibility is a requirement, not a phase: keyboard reachability, focus
 order, labels, contrast, and what a screen reader announces.
 
+This inventory becomes the acceptance manifest. Do not use "main pages" or
+"representative screens" as shortcuts: enumerate every route and reachable
+state so Playwright can later prove which were checked and which were not.
+
 ## Output
 
 `docs/screens.md` - the screen inventory, the state matrix, the flows, and a

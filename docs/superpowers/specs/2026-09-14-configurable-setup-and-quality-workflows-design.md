@@ -192,7 +192,7 @@ single ordering mechanism, avoiding a second phase-number map that can drift.
 
 ## README diagram
 
-The existing `Simple-scheme.png` is regenerated because its mandatory planning
+The existing `docs/assets/simple-scheme.png` is regenerated because its mandatory planning
 step would contradict the new `planning=off` path. The replacement shows target
 selection, behavior choices, capability selection, exact review, an optional
 planning branch, implementation, and verification/backups. README uses the

@@ -12,7 +12,7 @@ uat status --project .
 ```
 
 If this errors, nothing is installed in this directory. If it prints a pack
-count of `3`, you have the core tier only — a bare
+count of `5`, you have the core tier only — a bare
 `install --yes` with no profile and no detectable stack installs the floor,
 not a setup.
 

@@ -17,6 +17,21 @@ assumed to work because the code looks right or a page rendered.
 Skip only when there is no product to accept - a library, a script, a Task-class
 change whose own verification already covered it.
 
+## Configured scope
+
+Read `"acceptance"` and `"visual_validation"` from
+`.agent-toolkit/project.json`:
+
+- `full` - exercise every applicable journey, route, role, state, and visual
+  viewport described below.
+- `browser` - exercise every browser-visible journey and page, but do not invent
+  non-browser acceptance for a project that has none.
+- `off` - do not run this phase; record that acceptance was disabled by policy.
+
+When `"visual_validation"` is `false`, functional browser acceptance still
+applies, but the screenshot matrix is optional. Explicit task requirements can
+always demand broader checks.
+
 ## Where the checklist comes from
 
 You do not invent it. It already exists:
@@ -41,6 +56,26 @@ The four rules there are the method:
    database directly. Client-side state is not persistence.
 3. **Test the denial.** Every permission, from both sides.
 4. **Take the unhappy path.** At least once per journey.
+
+## Responsive visual validation
+
+Use Playwright to visit every page in `docs/screens.md` and exercise its
+available empty, loading, partial, error, and full states. At minimum capture:
+
+- mobile: `390x844`
+- tablet: `768x1024`
+- desktop: `1440x900`
+- one viewport immediately on each side of every application breakpoint
+
+Store screenshots below `docs/acceptance/screenshots/` with stable names that
+identify route, state, and viewport. Inspect the screenshots rather than merely
+creating them. Check for overflow, overlap, clipping, unreadable text, missing
+controls, broken images, incorrect hierarchy, inconsistent spacing, focus
+visibility, and whether every required feature is actually present.
+
+Screenshots prove appearance only. Complete the interactions with Playwright,
+reload or use an independent observation path, and record functional evidence
+separately.
 
 ## The journeys that rot quietly
 

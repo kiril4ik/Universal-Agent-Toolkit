@@ -3,6 +3,7 @@
   "description": "The baseline every project gets: engineering discipline, code-quality principles, safety, security rules and documentation lookup.",
   "packs": [
     "superpowers",
+    "ponytail",
     "karpathy-guidelines",
     "engineering-principles",
     "security",

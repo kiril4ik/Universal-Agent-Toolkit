@@ -276,6 +276,27 @@ class TestVendoredContentIsReal(TempProject):
                     )
 
 
+class TestPonytail(TempProject):
+    def test_ponytail_is_selected_by_default_but_can_be_omitted(self):
+        self.assertIn("ponytail", self.catalog.recommend(set()))
+        selected = self.catalog.expand({"superpowers"})
+        self.assertNotIn("ponytail", selected)
+
+    def test_ponytail_installs_rule_and_all_upstream_skills(self):
+        self.install(["claude-code"], packs=["ponytail"])
+        root = self.project / ".agent-toolkit"
+        self.assertTrue((root / "rules/PONYTAIL.md").is_file())
+        expected = {
+            "ponytail", "ponytail-audit", "ponytail-debt",
+            "ponytail-gain", "ponytail-help", "ponytail-review",
+        }
+        actual = {
+            path.name for path in (root / "skills").iterdir()
+            if path.is_dir() and (path / "SKILL.md").is_file()
+        }
+        self.assertTrue(expected.issubset(actual))
+
+
 # ----------------------------------------------------------------------
 class TestIdempotencyAndSafety(TempProject):
     def test_second_install_changes_nothing(self):
@@ -314,6 +335,77 @@ class TestIdempotencyAndSafety(TempProject):
         self.assertEqual(target.read_text(), "EDITED\n")
         modified, _ = inst.drift(self.project)
         self.assertTrue(modified, "drift disappeared after reinstall")
+
+
+class TestReplaceReconciliation(TempProject):
+    def replace(self, agents, packs, **policy):
+        plan = inst.build_plan(
+            ROOT, self.project, registry=self.registry, catalog=self.catalog,
+            agent_keys=agents, mode="focused", explicit_packs=packs, **policy)
+        return inst.execute(plan, ROOT, replace=True)
+
+    def test_replace_removes_unchanged_files_from_deselected_packs(self):
+        self.install(["claude-code"], packs=["go"])
+        stale = self.project / ".agent-toolkit/rules/GO.md"
+        self.assertTrue(stale.exists())
+
+        self.replace(["claude-code"], ["ponytail"])
+
+        self.assertFalse(stale.exists())
+        state = inst.load_state(self.project)
+        self.assertNotIn("rules/GO.md", state["files"])
+        self.assertEqual(state["packs"], ["ponytail"])
+
+    def test_replace_keeps_a_modified_file_from_a_deselected_pack(self):
+        self.install(["claude-code"], packs=["go"])
+        stale = self.project / ".agent-toolkit/rules/GO.md"
+        stale.write_text(stale.read_text() + "\nlocal guidance\n")
+
+        result = self.replace(["claude-code"], ["ponytail"])
+
+        self.assertTrue(stale.exists())
+        self.assertIn("local guidance", stale.read_text())
+        self.assertTrue(any(a.path.endswith("GO.md") for a in result.report.conflicts()))
+
+    def test_replace_removes_dropped_agent_and_disabled_workflow_surfaces(self):
+        self.install(["claude-code", "cursor"], packs=["superpowers"])
+        self.assertTrue((self.project / ".cursor/rules/00-agent-toolkit.mdc").exists())
+        self.assertTrue((self.project / ".agent-toolkit/START-HERE.md").exists())
+
+        self.replace(["claude-code"], ["ponytail"], planning="off")
+
+        self.assertFalse((self.project / ".cursor/rules/00-agent-toolkit.mdc").exists())
+        self.assertFalse((self.project / ".agent-toolkit/workflow").exists())
+        self.assertFalse((self.project / ".agent-toolkit/START-HERE.md").exists())
+
+    def test_replace_removes_only_deselected_mcp_servers(self):
+        self.write(".mcp.json", json.dumps({
+            "mcpServers": {"mine": {"command": "node", "args": ["mine.js"]}}
+        }))
+        self.install(["claude-code"], packs=["mcp-context7"])
+
+        self.replace(["claude-code"], ["ponytail"])
+
+        servers = json.loads((self.project / ".mcp.json").read_text())["mcpServers"]
+        self.assertIn("mine", servers)
+        self.assertNotIn("context7", servers)
+
+    def test_replace_removes_only_the_deselected_session_hook(self):
+        settings = {
+            "hooks": {"SessionStart": [{
+                "matcher": "startup", "hooks": [
+                    {"type": "command", "command": "echo mine"}]
+            }]}
+        }
+        self.write(".claude/settings.json", json.dumps(settings))
+        self.install(["claude-code"], packs=["session-reminder"])
+        self.assertIn(".agent-toolkit", (self.project / ".claude/settings.json").read_text())
+
+        self.replace(["claude-code"], ["ponytail"])
+
+        text = (self.project / ".claude/settings.json").read_text()
+        self.assertIn("echo mine", text)
+        self.assertNotIn(".agent-toolkit", text)
 
 
 # ----------------------------------------------------------------------
@@ -1468,6 +1560,170 @@ class TestInstallArgumentSemantics(TempProject):
         ]), 1)
 
 
+class TestInstallPolicy(TempProject):
+    def plan(self, **policy):
+        return inst.build_plan(
+            ROOT, self.project, registry=self.registry, catalog=self.catalog,
+            agent_keys=["claude-code"], mode="focused", explicit_packs=[],
+            **policy)
+
+    def test_policy_defaults_and_frontend_defaults(self):
+        empty = self.plan()
+        self.assertEqual(empty.policy.planning, "adaptive")
+        self.assertEqual(empty.policy.acceptance, "browser")
+        self.assertFalse(empty.policy.visual_validation)
+        self.write("package.json", '{"dependencies":{"react":"1"}}')
+        frontend = self.plan()
+        self.assertEqual(frontend.policy.acceptance, "full")
+        self.assertTrue(frontend.policy.visual_validation)
+
+    def test_policy_is_persisted(self):
+        plan = self.plan(
+            project_kind="existing", planning="full",
+            technology_additions="auto", acceptance="off",
+            visual_validation=False, db_backups="risky",
+            image_generation="off")
+        inst.execute(plan, ROOT)
+        doc = json.loads((self.project / ".agent-toolkit/project.json").read_text())
+        self.assertEqual(doc["project_kind"], "existing")
+        self.assertEqual(doc["planning"], "full")
+        self.assertEqual(doc["technology_additions"], "auto")
+        self.assertEqual(doc["acceptance"], "off")
+        self.assertEqual(doc["db_backups"], "risky")
+        self.assertEqual(doc["image_generation"], "off")
+
+        inst.refresh(self.project, ROOT, self.registry, report=Report())
+        core = (self.project / ".agent-toolkit/CORE.md").read_text()
+        self.assertIn("Project workflow policy", core)
+        self.assertIn("Database backups: `risky`", core)
+
+    def test_planning_off_omits_every_workflow_surface(self):
+        plan = self.plan(planning="off")
+        inst.execute(plan, ROOT)
+        toolkit = self.project / ".agent-toolkit"
+        self.assertFalse((toolkit / "workflow").exists())
+        self.assertFalse((toolkit / "reports").exists())
+        self.assertFalse((toolkit / "START-HERE.md").exists())
+        self.assertFalse((self.project / ".claude/commands").exists())
+        self.assertNotIn("workflow/README.md", (toolkit / "CORE.md").read_text())
+
+    def test_planning_off_session_hook_keeps_safety_without_workflow_commands(self):
+        plan = inst.build_plan(
+            ROOT, self.project, registry=self.registry, catalog=self.catalog,
+            agent_keys=["claude-code"], mode="focused",
+            explicit_packs=["session-reminder"], planning="off")
+        inst.execute(plan, ROOT)
+        hook = self.project / ".agent-toolkit/hooks/session-start.sh"
+        result = subprocess.run(
+            [str(hook)], env={**os.environ, "CLAUDE_PROJECT_DIR": str(self.project)},
+            capture_output=True, text=True, check=True)
+        self.assertIn("Planning is disabled", result.stdout)
+        self.assertIn("SAFETY.md", result.stdout)
+        self.assertNotIn("workflow/README.md", result.stdout)
+
+    def test_parser_exposes_every_silent_policy_flag(self):
+        from uat.cli import build_parser
+
+        args = build_parser().parse_args([
+            "install", "--agent", "codex", "--project-kind", "new",
+            "--planning", "off", "--technology-additions", "auto",
+            "--acceptance", "browser", "--no-visual-validation",
+            "--db-backups", "risky", "--image-generation", "off",
+        ])
+        self.assertEqual(args.project_kind, "new")
+        self.assertEqual(args.planning, "off")
+        self.assertFalse(args.visual_validation)
+
+
+class TestInstallInteraction(TempProject):
+    def test_choice_uses_default_and_numbered_selection(self):
+        from uat.cli import _choose_value
+
+        with patch("builtins.input", return_value=""):
+            self.assertEqual(_choose_value("Planning", (
+                ("adaptive", "fit the work"), ("full", "all phases"),
+                ("off", "no workflow")), "adaptive"), "adaptive")
+        with patch("builtins.input", return_value="3"):
+            self.assertEqual(_choose_value("Planning", (
+                ("adaptive", "fit the work"), ("full", "all phases"),
+                ("off", "no workflow")), "adaptive"), "off")
+
+    def test_agent_prompt_accepts_multiple_ids(self):
+        from uat.cli import _choose_agents
+
+        with patch("builtins.input", return_value="claude-code,codex"):
+            self.assertEqual(_choose_agents(self.registry), ["claude-code", "codex"])
+
+
+class TestCapabilityPresentation(TempProject):
+    def test_catalog_exposes_ordered_capability_categories(self):
+        categories = {pack.category for pack in self.catalog}
+        self.assertTrue({"engineering", "technology", "browser-quality",
+                         "design-content", "infrastructure",
+                         "integrations"}.issubset(categories))
+
+    def test_dry_run_names_exact_rules_skills_and_servers(self):
+        result = subprocess.run([
+            str(ROOT / "bin/uat"), "install", "--project", str(self.project),
+            "--agent", "claude-code", "--packs", "superpowers", "go",
+            "mcp-context7", "--dry-run"], capture_output=True, text=True,
+            check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Rules:", result.stdout)
+        self.assertIn("GO.md", result.stdout)
+        self.assertIn("Skills:", result.stdout)
+        self.assertIn("brainstorming", result.stdout)
+        self.assertIn("MCP servers:", result.stdout)
+        self.assertIn("context7", result.stdout)
+
+    def test_detect_recommend_explains_matching_content(self):
+        self.write("go.mod", "module example.test\n")
+        result = subprocess.run([
+            str(ROOT / "bin/uat"), "detect", "--project", str(self.project),
+            "--recommend"], capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("go.mod", result.stdout)
+        self.assertIn("go", result.stdout)
+        self.assertIn("GO.md", result.stdout)
+
+
+class TestConfiguredQualityWorkflows(TempProject):
+    def test_codex_image_generation_is_recommended_for_frontends(self):
+        self.assertIn("codex-image-generation", self.catalog.recommend({"frontend"}))
+
+    def test_codex_image_pack_installs_a_capability_checked_rule(self):
+        self.install(["codex"], packs=["codex-image-generation"])
+        rule = (self.project / ".agent-toolkit/rules/CODEX-IMAGE-GENERATION.md").read_text()
+        self.assertIn("command -v codex", rule)
+        self.assertIn("codex --version", rule)
+        self.assertIn("Reply with exactly READY", rule)
+        self.assertIn("$imagegen", rule)
+
+    def test_acceptance_policy_requires_playwright_viewports_and_screenshots(self):
+        text = (ROOT / "catalog/workflow/13-acceptance.md").read_text()
+        for required in (
+                '"acceptance"', '"visual_validation"', "Playwright",
+                "390x844", "768x1024", "1440x900",
+                "docs/acceptance/screenshots"):
+            self.assertIn(required, text)
+
+    def test_completion_policy_documents_database_dumps(self):
+        combined = "\n".join(
+            (ROOT / path).read_text()
+            for path in ("catalog/core/SAFETY.md", "catalog/core/VERIFICATION.md")
+        )
+        self.assertIn('"db_backups"', combined)
+        self.assertIn("backups/db/", combined)
+        self.assertIn("timestamp", combined.lower())
+
+    def test_rules_phase_honours_technology_addition_policy(self):
+        text = (ROOT / "catalog/workflow/05-rules.md").read_text()
+        self.assertIn('"technology_additions"', text)
+        self.assertIn("uat detect --recommend", text)
+        for mode in ("ask", "auto", "off"):
+            self.assertIn(f"`{mode}`", text)
+
+
 class TestEngineeringPrinciples(TempProject):
     """SOLID/DRY/KISS must reach every project, and not fight the core rules."""
 
@@ -1708,16 +1964,14 @@ class TestKeyboardPicker(unittest.TestCase):
         self.assertLessEqual(len(frames[-1]), 8)
         self.assertTrue(all(len(line) <= 44 for line in frames[-1]))
 
-    def test_original_categories_alignment_and_colors_are_preserved(self):
+    def test_capability_categories_alignment_and_colors_are_preserved(self):
         with patch("uat.util._C", True), patch(
                 "shutil.get_terminal_size", return_value=os.terminal_size((100, 24))):
             _, frames = self.pick(["enter"], {"a"})
         lines = frames[0]
         self.assertIn("\x1b[1mSelect packs to install\x1b[0m", lines)
-        self.assertIn("  \x1b[1mCORE\x1b[0m", lines)
-        self.assertIn("  \x1b[1mOPTIONAL\x1b[0m", lines)
-        self.assertIn(">    1 [\x1b[32mx\x1b[0m] Alpha                             \x1b[2m  always\x1b[0m", lines)
-        self.assertLess(lines.index("  \x1b[1mCORE\x1b[0m"), lines.index("  \x1b[1mOPTIONAL\x1b[0m"))
+        self.assertIn("  \x1b[1mTECHNOLOGY\x1b[0m", lines)
+        self.assertIn(">    1 [\x1b[32mx\x1b[0m] Alpha                             \x1b[2m  default\x1b[0m", lines)
 
     @unittest.skipIf(os.name == "nt", "requires a Unix PTY")
     def test_real_terminal_arrows_and_restore_after_cancel(self):

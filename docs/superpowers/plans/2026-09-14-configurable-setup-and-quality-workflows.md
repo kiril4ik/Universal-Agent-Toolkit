@@ -470,7 +470,7 @@ git commit -m "fix(install): reconcile removed packs and agents"
 ### Task 8: Regenerate the README flow diagram
 
 **Files:**
-- Replace: `Simple-scheme.png`
+- Replace: `docs/assets/simple-scheme.png`
 - Modify: `README.md`
 
 **Interfaces:**
@@ -509,7 +509,7 @@ planning is optional.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Simple-scheme.png README.md
+git add docs/assets/simple-scheme.png README.md
 git commit -m "docs: illustrate configurable toolkit workflow"
 ```
 

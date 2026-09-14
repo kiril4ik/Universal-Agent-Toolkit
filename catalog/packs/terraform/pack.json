@@ -2,6 +2,7 @@
   "id": "terraform",
   "title": "Terraform",
   "tier": "optional",
+  "category": "infrastructure",
   "tags": [
     "infra"
   ],

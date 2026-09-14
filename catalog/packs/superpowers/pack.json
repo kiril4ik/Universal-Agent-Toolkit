@@ -2,6 +2,7 @@
   "id": "superpowers",
   "title": "Superpowers engineering skills",
   "tier": "core",
+  "category": "engineering",
   "tags": [
     "process"
   ],

@@ -2,6 +2,7 @@
   "id": "performance-web",
   "title": "Web performance",
   "tier": "optional",
+  "category": "browser-quality",
   "tags": [
     "frontend"
   ],

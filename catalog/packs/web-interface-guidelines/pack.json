@@ -2,6 +2,7 @@
   "id": "web-interface-guidelines",
   "title": "Web interface guidelines (Vercel Labs)",
   "tier": "recommended",
+  "category": "browser-quality",
   "tags": [
     "frontend"
   ],

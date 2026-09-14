@@ -43,13 +43,13 @@ repository and gets out of the way.
 It can install and configure:
 
 - engineering-discipline **skills** (brainstorming, TDD, systematic debugging,
-  verification, code review)
+  verification, code review), plus Ponytail's minimal-change engineering skills
 - **engineering principles** — SOLID, DRY, KISS, YAGNI, clean code and
   commenting, installed by default
 - stack **rules** and best practices — 41 curated packs, plus ~410 more
   vendored rule documents reachable on demand
 - **MCP servers** — Playwright, Context7, GitHub, Figma
-- a 14-phase project **planning workflow** with a human approval gate
+- an optional, adaptive 14-phase project **planning workflow** with a human approval gate
 - **safety guardrails** for databases, Docker volumes and deployment
 - **git** discipline: atomic commits, conventional messages, no AI attribution
 - **UI/UX and design** workflows, including Figma design-to-code
@@ -58,6 +58,8 @@ It can install and configure:
 
 Everything is stored locally in the target repository, and only what that
 project needs is activated.
+
+![Universal Agent Toolkit progressive setup and usage](docs/assets/simple-scheme.png)
 
 ## Why
 
@@ -152,8 +154,8 @@ ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
 
 ```bash
 ./bin/uat agents                    # 14 supported agents and what each one gets
-./bin/uat catalog                   # 62 packs and 6 profiles
-./bin/uat detect  --project ~/app   # what stack is in there, and the evidence
+./bin/uat catalog                   # 64 packs and 6 profiles
+./bin/uat detect --recommend --project ~/app   # stack, evidence, and matching content
 ./bin/uat install --project ~/app --agent claude-code
 ```
 
@@ -171,26 +173,27 @@ Add `--dry-run` to see every file that would change before anything does.
 
 Full detail: **[CLI reference](docs/CLI.md)**.
 
-### Interactive by default
+### Progressive setup by default
 
-On a terminal, `uat install` asks for an interaction mode, then shows a
-keyboard checklist of packs with the detected stack pre-checked and the evidence
-shown:
+On a terminal, `uat install` asks whether the project is new or existing, which
+agents to configure, interaction mode, planning depth, technology additions,
+acceptance coverage, responsive visual checks, database dumps, and Codex image
+generation. Each prompt has a safe default. It then shows a keyboard checklist
+of capabilities with the detected stack pre-checked and its evidence shown:
 
 ```
 Select packs to install
   Up/Down=move  Space=toggle  Enter=accept  Esc=cancel
   a=all  n=none  r=reset
 
-  CORE
->    1 [x] Engineering principles (SOLID, DRY, KISS)  always
-     2 [x] Karpathy guidelines                 always
-     3 [x] Security & OWASP                    always
-     4 [x] Superpowers engineering skills      always
-  RECOMMENDED
-     5 [x] Accessibility (a11y)                detected: frontend
-     6 [ ] Ubuntu deployment (clean + existing server)
-     7 [x] Docker & containers                 detected: docker
+  ENGINEERING
+>    1 [x] Engineering principles (SOLID, DRY, KISS)  default
+     2 [x] Karpathy guidelines                 default
+     3 [x] Ponytail minimal-change engineering default
+  BROWSER QUALITY
+     8 [x] Playwright MCP (browser)            detected: frontend
+  DESIGN CONTENT
+    10 [x] Codex image generation              detected: frontend
   ...
 ```
 
@@ -205,8 +208,10 @@ The same controls work in Windows PowerShell/Command Prompt and macOS/Linux
 terminals. For automation or redirected input/output, use `--yes`,
 `--packs ID ...`, or `--profile NAME`.
 
-`--yes` skips both prompts. `--packs`, `--profile` and `--all` skip the list,
-because you already said what you want.
+`--yes` accepts all policy defaults and recommendations. Every question also
+has a silent flag; for example `--planning off --acceptance browser
+--no-visual-validation --db-backups risky --image-generation off`. `--packs`,
+`--profile` and `--all` skip the list because you already chose the content.
 
 ## What a project gets
 
@@ -222,7 +227,7 @@ my-app/
 │   ├── mcp/                 neutral server specs + setup status
 │   ├── deploy/  docker/     provisioning and local-dev templates
 │   ├── reports/             one report per completed phase
-│   ├── project.json         mode, agents, detected stack
+│   ├── project.json         mode, agents, detected stack, workflow policies
 │   ├── installed.json       lockfile with content hashes
 │   └── toolkit/             the toolkit itself (only with --embed)
 ├── CLAUDE.md                <- a pointer, ~600 bytes
@@ -444,7 +449,7 @@ guide, a company's internal rules — with
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   62 packs - mostly small JSON pointers into vendor/
+catalog/packs/    360 KB   64 packs - mostly small JSON pointers into vendor/
 ```
 
 A pack says *which* vendored file to install, what to call it, and when it

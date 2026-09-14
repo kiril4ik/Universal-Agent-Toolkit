@@ -8,7 +8,7 @@ stack actually uses - and nothing it does not.
 From the toolkit repository:
 
 ```bash
-uat detect  --project /path/to/project
+uat detect --recommend --project /path/to/project
 uat install --project /path/to/project --agent <your-agent> --add <pack> <pack>
 ```
 
@@ -17,6 +17,16 @@ technologies it will recommend the packs that match.
 
 Installing is additive and idempotent: existing files are never overwritten
 without `--force`, and re-running is safe.
+
+Read `"technology_additions"` from `.agent-toolkit/project.json` before adding
+anything the detection report recommends:
+
+- `ask` - show the detected technologies, evidence, exact rules, skills and MCP
+  servers, then ask before installing the proposed packs.
+- `auto` - install every matching pack and report exactly what was added.
+- `off` - report uncovered technologies, but do not add packs.
+
+An explicit user selection still outranks this policy.
 
 ## Only what is used
 

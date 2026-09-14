@@ -2,6 +2,7 @@
   "id": "github-actions",
   "title": "GitHub Actions",
   "tier": "optional",
+  "category": "infrastructure",
   "tags": [
     "infra"
   ],
