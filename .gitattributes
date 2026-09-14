@@ -1,0 +1,3 @@
+# Vendored snapshots are byte-for-byte upstream. Do not flag or normalize
+# upstream trailing whitespace; `uat vendor verify` enforces their integrity.
+vendor/** whitespace=-trailing-space

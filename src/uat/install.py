@@ -466,7 +466,7 @@ def _desired_toolkit_paths(
     plan: InstallPlan, toolkit_root: Path, policy: InstallPolicy
 ) -> set[str]:
     """Files a replacement install is meant to own inside .agent-toolkit/."""
-    desired = {CORE_PATH for CORE_PATH in ("CORE.md", PROJECT_FILE, STATE_FILE)}
+    desired = {"CORE.md", PROJECT_FILE, STATE_FILE}
 
     def add_tree(source: Path, prefix: str = "") -> None:
         if source.is_dir():
@@ -525,9 +525,7 @@ def _desired_agent_paths(
         if policy.planning != "off" and commands.get("path"):
             desired.update(
                 f"{commands['path'].rstrip('/')}/{name}"
-                for name in render.claude_commands(
-                    render.RenderContext("", plan.mode, plan.agent_ids, [], [], [], True, False)
-                )
+                for name in ("plan.md", "plan-status.md", "plan-resume.md")
             )
         hooks = agent.surfaces.get("hooks") or {}
         if has_hook and hooks.get("scope") == "project" and hooks.get("path"):
@@ -706,7 +704,13 @@ def execute(
     # The workflow ships with the toolkit, so its presence is a property of the
     # source, not of the half-built target directory.
     has_workflow = policy.planning != "off"
-    has_deploy = (dest / "deploy").exists() or (dest / "docker").exists()
+    if replace:
+        desired = _desired_toolkit_paths(plan, toolkit_root, policy)
+        has_deploy = any(
+            rel.startswith("deploy/") or rel.startswith("docker/")
+            for rel in desired)
+    else:
+        has_deploy = (dest / "deploy").exists() or (dest / "docker").exists()
 
     # 4. agent adapters - ONLY for the selected agents
     wrote_agents_md = False
