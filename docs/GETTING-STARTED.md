@@ -62,9 +62,11 @@ projects.
 
 ```bash
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git ~/tools/universal-agent-toolkit
-cd ~/tools/universal-agent-toolkit
-./bin/uat doctor
-./bin/uat install --project ~/code/my-app --agent claude-code
+mkdir -p ~/.local/bin
+ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
+export PATH="$HOME/.local/bin:$PATH"
+uat doctor
+uat install --project ~/code/my-app --agent claude-code
 ```
 
 ### Windows PowerShell
@@ -72,8 +74,14 @@ cd ~/tools/universal-agent-toolkit
 ```powershell
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git "$HOME/tools/universal-agent-toolkit"
 cd "$HOME/tools/universal-agent-toolkit"
-.\bin\uat.cmd doctor
-.\bin\uat.cmd install --project "$HOME/code/my-app" --agent claude-code
+$uatBin = (Resolve-Path .\bin).Path
+$userPath = @([Environment]::GetEnvironmentVariable('Path', 'User') -split ';' | Where-Object { $_ })
+if ($userPath -notcontains $uatBin) {
+  [Environment]::SetEnvironmentVariable('Path', (($userPath + $uatBin) -join ';'), 'User')
+}
+$env:Path = "$uatBin;$env:Path"
+uat doctor
+uat install --project "$HOME/code/my-app" --agent claude-code
 ```
 
 `doctor` should end with `healthy`. See [Vendoring & provenance](VENDORING.md)
@@ -89,6 +97,9 @@ A successful non-embedded `install` adds the checkout's `bin` directory to
 `--yes`; no administrator access is needed. Existing PATH entries are
 preserved, and repeat installs do not add duplicates. `--no-path` skips this
 setup; `--dry-run`, failed installs, and `--embed` do not change PATH.
+
+The bootstrap above persists the checkout's `bin` directory and refreshes the
+current PowerShell session, so bare `uat` works immediately and in new shells.
 
 Restart your terminal application (and IDE if its terminal is embedded), or
 refresh the current PowerShell session:
@@ -109,9 +120,9 @@ Project uninstall leaves this shared CLI entry available for other projects.
 
 ### macOS / Linux
 
-The first interactive install offers to symlink `uat` into a writable
-user-owned directory already on PATH. `--yes` and `--no-path` skip that prompt.
-For manual setup:
+The bootstrap above symlinks `uat` into a user-owned directory. An install
+launched directly from a checkout offers the same setup; `--yes` and
+`--no-path` skip that prompt. For manual setup:
 
 ```bash
 mkdir -p ~/.local/bin
@@ -124,18 +135,16 @@ uat doctor
 To persist the `export`, add it once to `~/.zshrc` (zsh) or `~/.bashrc` (Bash),
 then open a new terminal. The launcher resolves symlinks to find its catalog.
 
-The examples below use `./bin/uat` from the checkout. In Windows PowerShell,
-substitute `.\bin\uat.cmd` and use paths such as `"$HOME/code/my-app"`.
-After PATH setup, use `uat` from anywhere. For embedded projects, use
-`.agent-toolkit/toolkit/uat` on Unix or
+The examples below use `uat` from PATH on every operating system. For embedded
+projects, use `.agent-toolkit/toolkit/uat` on Unix or
 `.\.agent-toolkit\toolkit\uat.cmd` in Windows PowerShell.
 
 ## 3. Look before you install
 
 ```bash
-./bin/uat agents                    # which coding agents are supported
-./bin/uat catalog                   # every pack and profile
-./bin/uat detect  --project ~/app   # what stack is in there, and the evidence
+uat agents                    # which coding agents are supported
+uat catalog                   # every pack and profile
+uat detect  --project ~/app   # what stack is in there, and the evidence
 ```
 
 `detect` reads manifests (`package.json`, `composer.json`, `pyproject.toml`,
@@ -147,7 +156,7 @@ Those tokens are what pack recommendation runs on.
 Never necessary, always cheap:
 
 ```bash
-./bin/uat install --project ~/app --agent claude-code --dry-run
+uat install --project ~/app --agent claude-code --dry-run
 ```
 
 It prints the plan, then every file it would create, change or skip. Nothing
@@ -157,26 +166,30 @@ safe in scripts and CI.
 ## 5. Install
 
 ```bash
-./bin/uat install --project ~/app --agent claude-code
+uat install --project ~/app --agent claude-code
 ```
 
 Without `--yes`, and on a terminal, setup is progressive. It asks about the
-project kind, agents, interaction mode, planning, technology additions,
+project kind, coding tools, interaction mode, planning, technology additions,
 acceptance, visual validation, database backups, and image generation before
 showing the capability checklist. Every prompt has a default and a matching
 CLI flag for silent installs.
 
-**Interaction mode** — how many questions the agent should ask you:
+**Single-choice settings** — move with **Up/Down** and press **Enter**. The
+cursor starts on the default or previously configured value:
 
 ```
 How autonomous should the agent be?
-  1  thorough    ask every question that materially affects the result
-  2  focused     ask only blocking questions, use sensible defaults  (default)
-  3  autonomous  decide independently; interrupt only for risky or ambiguous calls
+  Up/Down=move  Enter=select  Esc=cancel
+
+  thorough    ask every question that materially affects the result
+> focused     ask only blocking questions; use sensible defaults  default
+  autonomous  interrupt only for risky or ambiguous calls
 ```
 
-**Capability selection** — a keyboard checklist grouped by purpose, with detected packs
-pre-checked and the evidence shown:
+**Coding tools and capabilities** — move with **Up/Down**, toggle any number
+of choices with **Space**, then press **Enter**. Capabilities are grouped by
+purpose, with detected packs pre-checked and the evidence shown:
 
 ```
 Select packs to install
@@ -184,19 +197,18 @@ Select packs to install
   a=all  n=none  r=reset
 
   ENGINEERING
->    1 [x] Engineering principles (SOLID, DRY, KISS)  default
-     2 [x] Karpathy guidelines                 default
-     3 [x] Ponytail minimal-change engineering default
+>  [x] Engineering principles (SOLID, DRY, KISS)  default
+   [x] Karpathy guidelines                 default
+   [x] Ponytail minimal-change engineering default
   BROWSER QUALITY
-     8 [x] Playwright MCP (browser)            detected: frontend
+   [x] Playwright MCP (browser)            detected: frontend
   ...
 ```
 
 Use **Up/Down** to move, **Space** to select or deselect, and **Enter** to
 confirm. **Esc** or **Ctrl+C** cancels installation. The list scrolls with the
-cursor and keeps the category headings visible. Row numbers are labels;
-you do not type them to select items. **A** selects all, **N** clears the
-selection, and **R** restores recommendations. Dependencies are added when
+cursor and keeps the category headings visible. **A** selects all, **N** clears
+the selection, and **R** restores recommendations. Dependencies are added when
 you confirm. Skills are selected through their installable packs.
 
 The same controls work in Windows PowerShell/Command Prompt and macOS/Linux
@@ -241,7 +253,7 @@ Packs add their own directories when selected: `mcp/` (server specs),
 Verify:
 
 ```bash
-./bin/uat status --project ~/app
+uat status --project ~/app
 ```
 
 ## 7. Use it
@@ -265,7 +277,7 @@ at the approval gate before writing code. Full sequence in
 Check progress from the shell at any time:
 
 ```bash
-./bin/uat workflow --project ~/app
+uat workflow --project ~/app
 ```
 
 ## Making the project self-contained
@@ -275,7 +287,7 @@ By default the project depends on your toolkit checkout for later changes
 the toolkit into the folder it already owns:
 
 ```bash
-./bin/uat install --project ~/app --agent claude-code --embed
+uat install --project ~/app --agent claude-code --embed
 ```
 
 ```bash
@@ -295,7 +307,7 @@ Embedding never creates a top-level folder — it goes inside
 already-configured project:
 
 ```bash
-./bin/uat embed --project ~/app --with-vendor
+uat embed --project ~/app --with-vendor
 ```
 
 ## Changing your mind
@@ -304,20 +316,20 @@ Installing again **extends** what is there. Previous packs, agents and the
 interaction mode are kept:
 
 ```bash
-./bin/uat install --project ~/app --agent claude-code --add go postgresql
+uat install --project ~/app --agent claude-code --add go postgresql
 ```
 
 To start over deliberately:
 
 ```bash
-./bin/uat install --project ~/app --agent cursor --profile core --replace
+uat install --project ~/app --agent cursor --profile core --replace
 ```
 
 To remove everything the toolkit created — and only that:
 
 ```bash
-./bin/uat uninstall --project ~/app --dry-run   # see it first
-./bin/uat uninstall --project ~/app
+uat uninstall --project ~/app --dry-run   # see it first
+uat uninstall --project ~/app
 ```
 
 Uninstall reads `installed.json` and removes files it recorded and still

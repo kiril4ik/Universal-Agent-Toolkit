@@ -38,8 +38,8 @@ reference, and each page answers one question.
 
 ## Conventions in these pages
 
-- `uat` means `./bin/uat` from a toolkit checkout, or
-  `.agent-toolkit/toolkit/uat` in an embedded project.
+- `uat` means the toolkit launcher is on PATH. An embedded project can use
+  `.agent-toolkit/toolkit/uat` directly instead.
 - Counts (64 packs and 14 agents) are what the current tree reports; run
   `./bin/uat-test` for the current test total.
   Confirm with `uat catalog`, `uat agents` and `./bin/uat-test`; those are the

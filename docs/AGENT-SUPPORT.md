@@ -159,8 +159,8 @@ Tool-specific knowledge is data, so this is a JSON edit:
 }
 ```
 
-2. `./bin/uat doctor` — the registry must still load.
-3. `./bin/uat install --project /tmp/probe --agent my-agent --yes --dry-run` —
+2. `uat doctor` — the registry must still load.
+3. `uat install --project /tmp/probe --agent my-agent --yes --dry-run` —
    confirm it writes what you expect and nothing else.
 4. `./bin/uat-test`.
 

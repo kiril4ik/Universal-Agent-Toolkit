@@ -207,8 +207,8 @@ requires:
 python3 -m compileall -q src tests
 find catalog/packs -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 ./bin/uat-test
-./bin/uat doctor
-./bin/uat install --project /tmp/probe --agent claude-code --yes --dry-run
+uat doctor
+uat install --project /tmp/probe --agent claude-code --yes --dry-run
 ```
 
 Vendor verification must prove the Ponytail bytes match the pinned commit.

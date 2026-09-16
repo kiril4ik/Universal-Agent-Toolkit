@@ -33,8 +33,8 @@ by hand; where the two disagree, `catalog/vendor.json` is correct.
 Confirm the snapshots match their pins at any time:
 
 ```bash
-./bin/uat vendor list      # pins, licences and verification state
-./bin/uat vendor verify    # re-hash every file; a modified snapshot fails
+uat vendor list      # pins, licences and verification state
+uat vendor verify    # re-hash every file; a modified snapshot fails
 ```
 
 ### Partial vendoring

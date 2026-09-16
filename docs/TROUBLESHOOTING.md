@@ -60,10 +60,13 @@ open an issue. Agents with `confidence: medium` are the likely candidates.
 ## `zsh: command not found: uat`
 
 There is no install step, so `uat` is not on your PATH until you put it
-there. From a checkout it is always `./bin/uat`.
+there. The checkout provides the launcher at `bin/uat`; link it into a
+directory on PATH:
 
 ```bash
+mkdir -p ~/.local/bin
 ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 The launcher resolves symlink chains, so the link finds its own `src/` and
@@ -224,9 +227,9 @@ normally a typo in a `from` path, or an upstream that renamed a file after a
 ### Tests fail after my change
 
 ```bash
-./bin/uat-test        # 166 tests
-./bin/uat doctor
-./bin/uat install --project /tmp/probe --agent claude-code --yes --dry-run
+./bin/uat-test        # full test suite
+uat doctor
+uat install --project /tmp/probe --agent claude-code --yes --dry-run
 ```
 
 All three are required before claiming a change to this repository is

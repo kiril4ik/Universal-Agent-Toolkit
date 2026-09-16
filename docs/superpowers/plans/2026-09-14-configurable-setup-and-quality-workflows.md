@@ -296,7 +296,7 @@ Pin `https://github.com/DietrichGebert/ponytail.git` at
 
 - [ ] **Step 4: Fetch through the vendor command**
 
-Run: `./bin/uat vendor sync --only ponytail`
+Run: `uat vendor sync --only ponytail`
 
 Do not modify the resulting snapshot.
 
@@ -308,7 +308,7 @@ default rather than a mandatory tier. Change picker copy from `always` to
 
 - [ ] **Step 6: Verify and commit**
 
-Run: `./bin/uat doctor && ./bin/uat-test TestPonytail TestVendorReachability`
+Run: `uat doctor && ./bin/uat-test TestPonytail TestVendorReachability`
 
 ```bash
 git add catalog/vendor.json vendor/ponytail catalog/packs/ponytail catalog/profiles/core.json tests/test_uat.py THIRD_PARTY_NOTICES.md README.md docs/VENDORING.md docs/PACKS.md
@@ -363,7 +363,7 @@ include it in the design profile. Do not put Codex-specific paths in Python.
 
 - [ ] **Step 5: Verify and commit**
 
-Run: `./bin/uat-test TestConfigurableQualityPolicies TestProductAcceptance && ./bin/uat doctor`
+Run: `./bin/uat-test TestConfigurableQualityPolicies TestProductAcceptance && uat doctor`
 
 ```bash
 git add tests/test_uat.py catalog/core catalog/workflow catalog/packs/codex-image-generation catalog/profiles/design.json README.md docs/CORE-POLICY.md docs/WORKFLOW.md
@@ -535,14 +535,14 @@ git diff --check main...HEAD
 
 ```bash
 ./bin/uat-test
-./bin/uat doctor
+uat doctor
 ```
 
 - [ ] **Step 3: Run required installation probe**
 
 ```bash
 probe=$(mktemp -d)
-./bin/uat install --project "$probe" --agent claude-code --yes --dry-run
+uat install --project "$probe" --agent claude-code --yes --dry-run
 ```
 
 Verify the output names Ponytail, policy defaults, exact skills/rules/tools,

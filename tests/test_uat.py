@@ -1636,23 +1636,64 @@ class TestInstallPolicy(TempProject):
 
 
 class TestInstallInteraction(TempProject):
-    def test_choice_uses_default_and_numbered_selection(self):
-        from uat.cli import _choose_value
+    def test_single_choice_uses_arrows_and_enter(self):
+        from uat.picker import select_one
 
-        with patch("builtins.input", return_value=""):
-            self.assertEqual(_choose_value("Planning", (
-                ("adaptive", "fit the work"), ("full", "all phases"),
-                ("off", "no workflow")), "adaptive"), "adaptive")
-        with patch("builtins.input", return_value="3"):
-            self.assertEqual(_choose_value("Planning", (
-                ("adaptive", "fit the work"), ("full", "all phases"),
-                ("off", "no workflow")), "adaptive"), "off")
+        frames = []
+        result = select_one("Planning", (
+            ("adaptive", "fit the work"), ("full", "all phases"),
+            ("off", "no workflow")), "adaptive",
+            iter(("down", "down", "enter")).__next__, frames.append)
 
-    def test_agent_prompt_accepts_multiple_ids(self):
-        from uat.cli import _choose_agents
+        self.assertEqual(result, "off")
+        self.assertIn("  Up/Down=move  Enter=select  Esc=cancel", frames[-1])
+        self.assertTrue(any(line.startswith("> ") and "off" in line
+                            for line in frames[-1]))
 
-        with patch("builtins.input", return_value="claude-code,codex"):
-            self.assertEqual(_choose_agents(self.registry), ["claude-code", "codex"])
+    def test_single_choice_starts_on_default_and_stops_at_boundaries(self):
+        from uat.picker import select_one
+
+        options = (("adaptive", "fit the work"), ("full", "all phases"),
+                   ("off", "no workflow"))
+        self.assertEqual(select_one("Planning", options, "full",
+                                   iter(("enter",)).__next__, lambda _lines: None),
+                         "full")
+        self.assertEqual(select_one("Planning", options, "adaptive",
+                                   iter(("up", "enter")).__next__, lambda _lines: None),
+                         "adaptive")
+
+    def test_coding_tools_use_space_to_select_multiple(self):
+        from uat.picker import select_many
+
+        frames = []
+        options = tuple((agent.id, agent.name) for agent in self.registry)
+        selected = select_many("Choose coding tools", options, set(),
+                               iter((" ", "down", " ", "enter")).__next__,
+                               frames.append, require_one=True)
+
+        self.assertEqual(selected, {"claude-code", "cursor"})
+        self.assertIn("  Up/Down=move  Space=toggle  Enter=accept  Esc=cancel",
+                      frames[-1])
+
+    def test_coding_tools_cannot_confirm_an_empty_selection(self):
+        from uat.picker import select_many
+
+        frames = []
+        options = tuple((agent.id, agent.name) for agent in self.registry)
+        selected = select_many("Choose coding tools", options, set(),
+                               iter(("enter", " ", "enter")).__next__,
+                               frames.append, require_one=True)
+
+        self.assertEqual(selected, {"claude-code"})
+        self.assertTrue(any("choose at least one" in line
+                            for line in frames[-2]))
+
+    def test_multi_choice_rejects_an_empty_option_list(self):
+        from uat.picker import select_many
+
+        with self.assertRaisesRegex(ToolkitError, "has no choices"):
+            select_many("Choose coding tools", (), set(),
+                        iter(("enter",)).__next__, lambda _lines: None)
 
 
 class TestCapabilityPresentation(TempProject):
@@ -1939,7 +1980,7 @@ class TestKeyboardPicker(unittest.TestCase):
     def test_arrows_space_and_enter_expand_dependencies(self):
         result, frames = self.pick(["down", " ", "enter"])
         self.assertEqual(result, {"a", "b"})
-        self.assertTrue(any(">    2 [x] Beta" in line for line in frames[-1]))
+        self.assertTrue(any(">  [x] Beta" in line for line in frames[-1]))
 
     def test_enter_keeps_recommendations_and_space_can_remove(self):
         self.assertEqual(self.pick(["enter"], {"c"})[0], {"c"})
@@ -1960,7 +2001,7 @@ class TestKeyboardPicker(unittest.TestCase):
         with patch("shutil.get_terminal_size", return_value=os.terminal_size((45, 9))):
             result, frames = self.pick(["down", "down", " ", "enter"])
         self.assertEqual(result, {"c"})
-        self.assertTrue(any(">    3 [x] Charlie" in line for line in frames[-1]))
+        self.assertTrue(any(">  [x] Charlie" in line for line in frames[-1]))
         self.assertLessEqual(len(frames[-1]), 8)
         self.assertTrue(all(len(line) <= 44 for line in frames[-1]))
 
@@ -1971,7 +2012,7 @@ class TestKeyboardPicker(unittest.TestCase):
         lines = frames[0]
         self.assertIn("\x1b[1mSelect packs to install\x1b[0m", lines)
         self.assertIn("  \x1b[1mTECHNOLOGY\x1b[0m", lines)
-        self.assertIn(">    1 [\x1b[32mx\x1b[0m] Alpha                             \x1b[2m  default\x1b[0m", lines)
+        self.assertIn(">  [\x1b[32mx\x1b[0m] Alpha                             \x1b[2m  default\x1b[0m", lines)
 
     @unittest.skipIf(os.name == "nt", "requires a Unix PTY")
     def test_real_terminal_arrows_and_restore_after_cancel(self):

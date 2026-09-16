@@ -175,9 +175,9 @@ $EDITOR catalog/packs/my-pack/pack.json
 Then, before claiming it works:
 
 ```bash
-./bin/uat doctor        # every vendor_map target must exist
-./bin/uat catalog       # it appears, in the right tier
-./bin/uat install --project /tmp/probe --agent claude-code \
+uat doctor        # every vendor_map target must exist
+uat catalog       # it appears, in the right tier
+uat install --project /tmp/probe --agent claude-code \
                   --packs my-pack --yes --dry-run
 ./bin/uat-test
 ```

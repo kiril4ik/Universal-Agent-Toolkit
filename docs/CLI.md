@@ -4,12 +4,13 @@
 uat [--verbose] <command> [options]
 ```
 
-`uat` is `./bin/uat` from a toolkit checkout, or `.agent-toolkit/toolkit/uat`
-inside an embedded project. On Windows PowerShell use `.\bin\uat.cmd` or
-`.\.agent-toolkit\toolkit\uat.cmd`, respectively. A successful Windows
-non-embedded install sets up user PATH automatically; see
-[PATH setup](GETTING-STARTED.md#2a-path-setup). `--verbose` is global and makes the change report
-list unchanged files too, not only additions and conflicts.
+`uat` is the toolkit launcher on PATH. An embedded project can instead use
+`.agent-toolkit/toolkit/uat` on Unix or `.\.agent-toolkit\toolkit\uat.cmd`
+on Windows. A successful Windows non-embedded install sets up user PATH
+automatically; the initial setup also documents how to put it on PATH before
+the first command. See [PATH setup](GETTING-STARTED.md#2a-path-setup).
+`--verbose` is global and makes the change report list unchanged files too,
+not only additions and conflicts.
 
 Every command that touches a project takes `--project PATH` (default: the
 current directory).
@@ -173,7 +174,9 @@ re-install, the recorded mode is kept; omitted with `--yes`, it defaults to
 ### Project workflow policy
 
 Interactive setup asks each of these progressively. The equivalent silent
-flags make every choice reproducible:
+flags make every choice reproducible. Single-choice settings use
+**Up/Down** and **Enter**; coding tools and capability lists add **Space** to
+toggle multiple selections:
 
 | Flag | Values and default |
 |---|---|

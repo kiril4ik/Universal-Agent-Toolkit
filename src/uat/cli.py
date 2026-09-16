@@ -38,65 +38,26 @@ def _interactive_packs(catalog: Catalog, recommended: set[str], detection) -> se
 
 
 def _choose_mode() -> str:
-    print()
-    print(bold("How autonomous should the agent be?"))
-    print("  1  thorough    ask every question that materially affects the result")
-    print("  2  focused     ask only blocking questions, use sensible defaults  " + dim("(default)"))
-    print("  3  autonomous  decide independently; interrupt only for risky or ambiguous calls")
-    print()
-    try:
-        answer = input("> ").strip()
-    except (EOFError, KeyboardInterrupt):
-        print()
-        raise ToolkitError("cancelled")
-    return {"1": "thorough", "2": "focused", "3": "autonomous", "": "focused"}.get(
-        answer, "focused"
-    )
+    return _choose_value("How autonomous should the agent be?", (
+        ("thorough", "ask every question that materially affects the result"),
+        ("focused", "ask only blocking questions; use sensible defaults"),
+        ("autonomous", "interrupt only for risky or ambiguous calls"),
+    ), "focused")
 
 
 def _choose_value(label: str, options, default: str) -> str:
     """Ask one progressive-setup question with a reproducible default."""
-    print()
-    print(bold(label))
-    values = [value for value, _description in options]
-    for number, (value, description) in enumerate(options, 1):
-        marker = dim(" (default)") if value == default else ""
-        print(f"  {number}  {value:<12} {description}{marker}")
-    while True:
-        try:
-            answer = input("> ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            raise ToolkitError("cancelled") from None
-        if not answer:
-            return default
-        if answer.isdigit() and 1 <= int(answer) <= len(values):
-            return values[int(answer) - 1]
-        if answer in values:
-            return answer
-        print(yellow("  choose a number or value from the list"))
+    from .picker import choose_one
+
+    return choose_one(label, options, default)
 
 
 def _choose_agents(registry: Registry) -> list[str]:
-    print()
-    print(bold("Which coding agents should be configured?"))
-    print(dim("  Enter one or more IDs, separated by commas."))
-    for agent in registry:
-        print(f"  {agent.id:<16} {agent.name}")
-    while True:
-        try:
-            answer = input("> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            raise ToolkitError("cancelled") from None
-        keys = [item.strip() for item in answer.split(",") if item.strip()]
-        if keys:
-            try:
-                return [agent.id for agent in registry.resolve(keys)]
-            except ToolkitError as exc:
-                print(yellow(f"  {exc}"))
-        else:
-            print(yellow("  choose at least one agent"))
+    from .picker import choose_many
+
+    options = tuple((agent.id, agent.name) for agent in registry)
+    selected = choose_many("Choose coding tools", options, require_one=True)
+    return [agent.id for agent in registry if agent.id in selected]
 
 
 # ----------------------------------------------------------------------
