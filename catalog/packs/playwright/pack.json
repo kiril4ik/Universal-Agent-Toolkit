@@ -2,6 +2,7 @@
   "id": "playwright",
   "title": "Playwright testing",
   "tier": "optional",
+  "category": "browser-quality",
   "tags": [
     "testing"
   ],

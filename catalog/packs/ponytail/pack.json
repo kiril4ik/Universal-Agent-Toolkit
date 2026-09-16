@@ -1,0 +1,28 @@
+{
+  "id": "ponytail",
+  "title": "Ponytail minimal-change engineering",
+  "tier": "core",
+  "category": "engineering",
+  "tags": [
+    "process",
+    "code-quality"
+  ],
+  "detect": [],
+  "summary": "A senior-engineering discipline for reusing what exists, minimizing code, and fixing root causes, plus focused audit and review skills.",
+  "vendor_maps": [
+    {
+      "vendor": "ponytail",
+      "files": [
+        {
+          "from": "AGENTS.md",
+          "to": "rules/PONYTAIL.md"
+        }
+      ]
+    },
+    {
+      "vendor": "ponytail",
+      "src": "skills",
+      "dest": "skills"
+    }
+  ]
+}

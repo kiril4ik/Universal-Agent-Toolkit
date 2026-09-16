@@ -7,7 +7,7 @@ planning workflow into any project — **for the coding agent you actually use,
 and nothing else.**
 
 ```bash
-./bin/uat install --project ~/code/my-app --agent claude-code
+uat install --project ~/code/my-app --agent claude-code
 ```
 
 That creates exactly one folder, `.agent-toolkit/`, plus the two or three
@@ -43,13 +43,13 @@ repository and gets out of the way.
 It can install and configure:
 
 - engineering-discipline **skills** (brainstorming, TDD, systematic debugging,
-  verification, code review)
+  verification, code review), plus Ponytail's minimal-change engineering skills
 - **engineering principles** — SOLID, DRY, KISS, YAGNI, clean code and
   commenting, installed by default
 - stack **rules** and best practices — 41 curated packs, plus ~410 more
   vendored rule documents reachable on demand
 - **MCP servers** — Playwright, Context7, GitHub, Figma
-- a 14-phase project **planning workflow** with a human approval gate
+- an optional, adaptive 14-phase project **planning workflow** with a human approval gate
 - **safety guardrails** for databases, Docker volumes and deployment
 - **git** discipline: atomic commits, conventional messages, no AI attribution
 - **UI/UX and design** workflows, including Figma design-to-code
@@ -58,6 +58,8 @@ It can install and configure:
 
 Everything is stored locally in the target repository, and only what that
 project needs is activated.
+
+![Universal Agent Toolkit progressive setup and usage](docs/assets/simple-scheme.png)
 
 ## Why
 
@@ -90,15 +92,16 @@ copy anywhere:
 
 ```bash
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git ~/tools/universal-agent-toolkit
-~/tools/universal-agent-toolkit/bin/uat install --project ~/code/my-app --agent claude-code
+# Put its bin/ directory on PATH as shown in Quick start, then:
+uat install --project ~/code/my-app --agent claude-code
 ```
 
 Use it to bootstrap as many projects as you like:
 
 ```bash
-./bin/uat install --project ~/code/project-a --agent claude-code
-./bin/uat install --project ~/code/project-b --agent codex
-./bin/uat install --project ~/code/project-c --agent cursor
+uat install --project ~/code/project-a --agent claude-code
+uat install --project ~/code/project-b --agent codex
+uat install --project ~/code/project-c --agent cursor
 ```
 
 Each project gets its own self-contained agent configuration. The toolkit
@@ -132,81 +135,93 @@ You can also embed later, into an already-configured project:
 ```powershell
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git "$HOME/tools/universal-agent-toolkit"
 cd "$HOME/tools/universal-agent-toolkit"
-.\bin\uat.cmd install --project "$HOME/code/my-app" --agent claude-code
+$uatBin = (Resolve-Path .\bin).Path
+$userPath = @([Environment]::GetEnvironmentVariable('Path', 'User') -split ';' | Where-Object { $_ })
+if ($userPath -notcontains $uatBin) {
+  [Environment]::SetEnvironmentVariable('Path', (($userPath + $uatBin) -join ';'), 'User')
+}
+$env:Path = "$uatBin;$env:Path"
+uat install --project "$HOME/code/my-app" --agent claude-code
 ```
 
-The first successful non-embedded Windows install adds `bin` to your user PATH
-automatically, including with `--yes`. Restart your terminal application to run
-`uat` from anywhere. Use `--no-path` to opt out; `--dry-run` never changes PATH.
+The bootstrap records `uat` on your user PATH and refreshes the current
+PowerShell session before running the installer. Other installation paths can
+also register PATH automatically.
 See [installation by operating system](docs/GETTING-STARTED.md) for prerequisites,
 PowerShell PATH refresh, and manual setup.
 
-**macOS / Linux:** Run it from the checkout as `./bin/uat`. To type just `uat` from anywhere,
-symlink it onto your PATH — the launcher resolves symlinks, so it still finds
-its own catalog:
+**macOS / Linux:** Symlink the checkout's launcher onto your PATH. It resolves
+the link back to its own catalog:
 
 ```bash
 mkdir -p ~/.local/bin
 ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ```bash
-./bin/uat agents                    # 14 supported agents and what each one gets
-./bin/uat catalog                   # 62 packs and 6 profiles
-./bin/uat detect  --project ~/app   # what stack is in there, and the evidence
-./bin/uat install --project ~/app --agent claude-code
+uat agents                    # 14 supported agents and what each one gets
+uat catalog                   # 64 packs and 6 profiles
+uat detect --recommend --project ~/app   # stack, evidence, and matching content
+uat install --project ~/app --agent claude-code
 ```
 
 Add `--dry-run` to see every file that would change before anything does.
 
 ```bash
-./bin/uat install --project ~/app --agent cursor --profile nextjs
-./bin/uat install --project ~/app --agent claude-code --agent cursor
-./bin/uat install --project ~/app --agent claude-code --add go   # extends; keeps the rest
-./bin/uat install --project ~/app --agent cursor --profile core --replace   # starts over
-./bin/uat workflow  --project ~/app     # planning progress and next step
-./bin/uat status    --project ~/app     # what is installed, and local drift
-./bin/uat uninstall --project ~/app     # removes only what it created
+uat install --project ~/app --agent cursor --profile nextjs
+uat install --project ~/app --agent claude-code --agent cursor
+uat install --project ~/app --agent claude-code --add go   # extends; keeps the rest
+uat install --project ~/app --agent cursor --profile core --replace   # starts over
+uat workflow  --project ~/app     # planning progress and next step
+uat status    --project ~/app     # what is installed, and local drift
+uat uninstall --project ~/app     # removes only what it created
 ```
 
 Full detail: **[CLI reference](docs/CLI.md)**.
 
-### Interactive by default
+### Progressive setup by default
 
-On a terminal, `uat install` asks for an interaction mode, then shows a
-keyboard checklist of packs with the detected stack pre-checked and the evidence
-shown:
+On a terminal, `uat install` asks whether the project is new or existing, which
+coding tools to configure, interaction mode, planning depth, technology additions,
+acceptance coverage, responsive visual checks, database dumps, and Codex image
+generation. Every choice uses the same keyboard interface: single-choice menus
+use **Up/Down** and **Enter**; coding tools and capabilities use **Up/Down**,
+**Space**, and **Enter**. Each prompt has a safe default.
+
+The capability checklist groups options by purpose and preselects matches for
+the detected stack:
 
 ```
 Select packs to install
   Up/Down=move  Space=toggle  Enter=accept  Esc=cancel
   a=all  n=none  r=reset
 
-  CORE
->    1 [x] Engineering principles (SOLID, DRY, KISS)  always
-     2 [x] Karpathy guidelines                 always
-     3 [x] Security & OWASP                    always
-     4 [x] Superpowers engineering skills      always
-  RECOMMENDED
-     5 [x] Accessibility (a11y)                detected: frontend
-     6 [ ] Ubuntu deployment (clean + existing server)
-     7 [x] Docker & containers                 detected: docker
+  ENGINEERING
+>  [x] Engineering principles (SOLID, DRY, KISS)  default
+   [x] Karpathy guidelines                 default
+   [x] Ponytail minimal-change engineering default
+  BROWSER QUALITY
+   [x] Playwright MCP (browser)            detected: frontend
+  DESIGN CONTENT
+   [x] Codex image generation              detected: frontend
   ...
 ```
 
 Use **Up/Down** to move, **Space** to select or deselect, and **Enter** to
 confirm. **Esc** or **Ctrl+C** cancels installation. The list scrolls with the
-cursor and keeps the category headings visible. Row numbers are labels;
-you do not type them to select items. **A** selects all, **N** clears the
-selection, and **R** restores recommendations. Dependencies are added when
+cursor and keeps the category headings visible. **A** selects all, **N** clears
+the selection, and **R** restores recommendations. Dependencies are added when
 you confirm. Skills are selected through their installable packs.
 
 The same controls work in Windows PowerShell/Command Prompt and macOS/Linux
 terminals. For automation or redirected input/output, use `--yes`,
 `--packs ID ...`, or `--profile NAME`.
 
-`--yes` skips both prompts. `--packs`, `--profile` and `--all` skip the list,
-because you already said what you want.
+`--yes` accepts all policy defaults and recommendations. Every question also
+has a silent flag; for example `--planning off --acceptance browser
+--no-visual-validation --db-backups risky --image-generation off`. `--packs`,
+`--profile` and `--all` skip the list because you already chose the content.
 
 ## What a project gets
 
@@ -222,7 +237,7 @@ my-app/
 │   ├── mcp/                 neutral server specs + setup status
 │   ├── deploy/  docker/     provisioning and local-dev templates
 │   ├── reports/             one report per completed phase
-│   ├── project.json         mode, agents, detected stack
+│   ├── project.json         mode, agents, detected stack, workflow policies
 │   ├── installed.json       lockfile with content hashes
 │   └── toolkit/             the toolkit itself (only with --embed)
 ├── CLAUDE.md                <- a pointer, ~600 bytes
@@ -416,9 +431,9 @@ Backend-only projects carry none of it. That is the point.
 Every vendored file is fetched from a pinned commit and hashed:
 
 ```bash
-./bin/uat vendor list      # pins, licences and verification state
-./bin/uat vendor verify    # re-hashes; a hand-edited snapshot fails loudly
-./bin/uat vendor sync      # fetch at the pinned commits
+uat vendor list      # pins, licences and verification state
+uat vendor verify    # re-hashes; a hand-edited snapshot fails loudly
+uat vendor sync      # fetch at the pinned commits
 ```
 
 | Upstream | Licence | What |
@@ -444,7 +459,7 @@ guide, a company's internal rules — with
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   62 packs - mostly small JSON pointers into vendor/
+catalog/packs/    360 KB   64 packs - mostly small JSON pointers into vendor/
 ```
 
 A pack says *which* vendored file to install, what to call it, and when it
@@ -502,7 +517,7 @@ Windows. No Python packages or build step. See [OS setup](docs/GETTING-STARTED.m
 
 ```bash
 ./bin/uat-test     # test suite
-./bin/uat doctor   # verify catalog, registry and vendored snapshots
+uat doctor   # verify catalog, registry and vendored snapshots
 ```
 
 ## Adding things

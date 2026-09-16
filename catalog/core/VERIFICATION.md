@@ -27,6 +27,12 @@ relevant output:
 If the project has no test for what you changed, say so explicitly rather
 than implying coverage exists.
 
+After implementation and tests finish, read `"db_backups"` from
+`.agent-toolkit/project.json`. If the project uses a database and the value is
+`"finish"`, create a timestamped logical dump under `backups/db/` by following
+the completion-dump procedure in `SAFETY.md`. Report the dump path and check;
+never claim the task is complete while silently skipping a required dump.
+
 ## Rendered is not the same as works
 
 A screenshot proves a page rendered. It proves nothing about whether the

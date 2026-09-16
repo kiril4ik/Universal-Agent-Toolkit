@@ -2,6 +2,7 @@
   "id": "accessibility",
   "title": "Accessibility (a11y)",
   "tier": "recommended",
+  "category": "browser-quality",
   "tags": [
     "frontend"
   ],

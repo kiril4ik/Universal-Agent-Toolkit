@@ -46,6 +46,23 @@ TOOLKIT_DIR = ".agent-toolkit"
 STATE_FILE = "installed.json"
 PROJECT_FILE = "project.json"
 MODES = ("thorough", "focused", "autonomous")
+PROJECT_KINDS = ("auto", "new", "existing")
+PLANNING_MODES = ("adaptive", "full", "off")
+TECHNOLOGY_ADDITION_MODES = ("ask", "auto", "off")
+ACCEPTANCE_MODES = ("full", "browser", "off")
+DB_BACKUP_MODES = ("finish", "risky", "off")
+IMAGE_GENERATION_MODES = ("ask", "auto", "off")
+
+
+@dataclass(frozen=True)
+class InstallPolicy:
+    project_kind: str
+    planning: str
+    technology_additions: str
+    acceptance: str
+    visual_validation: bool
+    db_backups: str
+    image_generation: str
 
 
 @dataclass
@@ -57,6 +74,7 @@ class InstallPlan:
     detection: Detection
     skills_mode: str = "link"       # "link" | "copy"
     new_project: bool = False
+    policy: InstallPolicy | None = None
 
     @property
     def pack_ids(self) -> list[str]:
@@ -102,6 +120,13 @@ def build_plan(
     add_packs: list[str] | None = None,
     all_packs: bool = False,
     skills_mode: str | None = None,
+    project_kind: str = "auto",
+    planning: str = "adaptive",
+    technology_additions: str = "ask",
+    acceptance: str | None = None,
+    visual_validation: bool | None = None,
+    db_backups: str = "finish",
+    image_generation: str = "ask",
 ) -> InstallPlan:
     if mode not in MODES:
         raise ToolkitError(f"mode must be one of {', '.join(MODES)}, got {mode!r}")
@@ -116,10 +141,38 @@ def build_plan(
         agents = registry.resolve(agent_keys)
 
     detection = detect(project)
+    choices = (
+        (project_kind, PROJECT_KINDS, "project kind"),
+        (planning, PLANNING_MODES, "planning"),
+        (technology_additions, TECHNOLOGY_ADDITION_MODES, "technology additions"),
+        (db_backups, DB_BACKUP_MODES, "database backups"),
+        (image_generation, IMAGE_GENERATION_MODES, "image generation"),
+    )
+    for value, allowed, label in choices:
+        if value not in allowed:
+            raise ToolkitError(f"{label} must be one of {', '.join(allowed)}, got {value!r}")
+    frontend = "frontend" in detection.tokens
+    acceptance = acceptance or ("full" if frontend else "browser")
+    if acceptance not in ACCEPTANCE_MODES:
+        raise ToolkitError(
+            f"acceptance must be one of {', '.join(ACCEPTANCE_MODES)}, got {acceptance!r}"
+        )
+    if visual_validation is None:
+        visual_validation = frontend
+    is_new = looks_like_new_project(project) if project_kind == "auto" else project_kind == "new"
+    policy = InstallPolicy(
+        project_kind="new" if is_new else "existing",
+        planning=planning,
+        technology_additions=technology_additions,
+        acceptance=acceptance,
+        visual_validation=visual_validation,
+        db_backups=db_backups,
+        image_generation=image_generation,
+    )
 
     if all_packs:
         selected = set(catalog.ids)
-    elif explicit_packs:
+    elif explicit_packs is not None:
         selected = catalog.expand(set(explicit_packs))
     elif profile:
         selected = catalog.resolve_profile(profile)
@@ -148,7 +201,8 @@ def build_plan(
         mode=mode,
         detection=detection,
         skills_mode=skills_mode,
-        new_project=looks_like_new_project(project),
+        new_project=is_new,
+        policy=policy,
     )
 
 
@@ -408,12 +462,187 @@ def _installed_skills(dest_root: Path) -> list[str]:
     return sorted(p.name for p in d.iterdir() if p.is_dir() and (p / "SKILL.md").exists())
 
 
+def _desired_toolkit_paths(
+    plan: InstallPlan, toolkit_root: Path, policy: InstallPolicy
+) -> set[str]:
+    """Files a replacement install is meant to own inside .agent-toolkit/."""
+    desired = {"CORE.md", PROJECT_FILE, STATE_FILE}
+
+    def add_tree(source: Path, prefix: str = "") -> None:
+        if source.is_dir():
+            for path in iter_files(source):
+                rel = str(path.relative_to(source)).replace(os.sep, "/")
+                desired.add(f"{prefix}/{rel}".lstrip("/"))
+
+    add_tree(toolkit_root / "catalog/core", "core")
+    if policy.planning != "off":
+        add_tree(toolkit_root / "catalog/workflow", "workflow")
+        desired.update({"START-HERE.md", "reports/README.md"})
+
+    for pack in plan.packs:
+        add_tree(pack.files_dir)
+        for vm in pack.vendor_maps:
+            vendor_root = toolkit_root / "vendor" / vm.vendor
+            for rel_from, rel_to in vm.files:
+                if (vendor_root / rel_from).is_file():
+                    desired.add(rel_to)
+            if not vm.dest:
+                continue
+            source = vendor_root / vm.src if vm.src else vendor_root
+            if vm.only:
+                for child in vm.only:
+                    child_source = source / child
+                    if child_source.is_dir():
+                        add_tree(child_source, f"{vm.dest}/{child}")
+                    elif child_source.is_file():
+                        desired.add(f"{vm.dest}/{child}")
+            elif source.is_dir():
+                for path in iter_files(source):
+                    rel = str(path.relative_to(source)).replace(os.sep, "/")
+                    if not any(rel.startswith(excluded) for excluded in vm.exclude):
+                        desired.add(f"{vm.dest}/{rel}")
+
+    if predicted_mcp_specs(plan.packs, toolkit_root):
+        desired.add("mcp/README.md")
+    return desired
+
+
+def _desired_agent_paths(
+    plan: InstallPlan, toolkit_root: Path, policy: InstallPolicy
+) -> set[str]:
+    """Concrete outside-toolkit files and mounts produced by this plan."""
+    desired: set[str] = set()
+    _, skills = pack_outputs(plan.packs, toolkit_root)
+    has_hook = any(pack.id == "session-reminder" for pack in plan.packs)
+    has_mcp = bool(predicted_mcp_specs(plan.packs, toolkit_root))
+    for agent in plan.agents:
+        if agent.instruction_path:
+            desired.add(agent.instruction_path)
+        desired.update(agent.extra_root_files)
+        if skills and agent.supports_skills and agent.skills_path:
+            desired.add(agent.skills_path)
+        commands = agent.surfaces.get("commands") or {}
+        if policy.planning != "off" and commands.get("path"):
+            desired.update(
+                f"{commands['path'].rstrip('/')}/{name}"
+                for name in ("plan.md", "plan-status.md", "plan-resume.md")
+            )
+        hooks = agent.surfaces.get("hooks") or {}
+        if has_hook and hooks.get("scope") == "project" and hooks.get("path"):
+            desired.add(hooks["path"])
+        config = agent.surfaces.get("config") or {}
+        if config.get("kind") == "aider-read" and config.get("path"):
+            desired.add(config["path"])
+        if has_mcp and agent.writes_project_mcp and agent.mcp.get("path"):
+            desired.add(agent.mcp["path"])
+    return desired
+
+
+def _remove_owned_file(
+    path: Path, rel: str, owned: dict[str, str], *, report: Report
+) -> None:
+    if not path.exists() and not path.is_symlink():
+        return
+    verdict = _ownership(path, rel, owned, legacy=False)
+    if verdict == "ours":
+        if not report.dry_run:
+            if path.is_dir() and not path.is_symlink():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
+        report.record("skip", path, "removed stale generated path")
+    elif verdict == "modified":
+        report.record(CONFLICT, path, "deselected, but edited since install; kept")
+    else:
+        report.record(CONFLICT, path, "deselected, but not owned by uat; kept")
+
+
+def _is_desired_agent_path(rel: str, desired: set[str]) -> bool:
+    return any(rel == path or rel.startswith(path.rstrip("/") + "/") for path in desired)
+
+
+def _reconcile_replace(
+    plan: InstallPlan, toolkit_root: Path, policy: InstallPolicy, report: Report
+) -> None:
+    """Remove stale, unchanged output from a previous recorded configuration."""
+    project = plan.project
+    dest = project / TOOLKIT_DIR
+    state = load_state(project)
+    if not state:
+        return
+
+    old_servers = {spec.name for spec in _collect_mcp_specs(dest)}
+    desired_servers = {
+        spec.name for spec in predicted_mcp_specs(plan.packs, toolkit_root)
+    }
+    removed_servers = old_servers - desired_servers
+    registry = Registry.load(toolkit_root)
+    prior_agents = []
+    for agent_id in set(state.get("agents", [])) | set(plan.agent_ids):
+        try:
+            prior_agents.append(registry.get(agent_id))
+        except ToolkitError:
+            continue
+
+    handled_agent_paths: set[str] = set()
+    for agent in prior_agents:
+        if removed_servers and agent.writes_project_mcp and agent.mcp.get("path"):
+            rel = agent.mcp["path"]
+            _strip_our_mcp_servers(
+                project / rel, agent, removed_servers, report=report)
+            handled_agent_paths.add(rel)
+        hooks = agent.surfaces.get("hooks") or {}
+        if (not any(pack.id == "session-reminder" for pack in plan.packs)
+                and hooks.get("scope") == "project" and hooks.get("path")):
+            rel = hooks["path"]
+            _strip_our_hook(project / rel, hooks, report=report)
+            handled_agent_paths.add(rel)
+
+    desired_toolkit = _desired_toolkit_paths(plan, toolkit_root, policy)
+    toolkit_parents: set[Path] = set()
+    for rel, digest in sorted(state.get("files", {}).items()):
+        if rel in desired_toolkit or rel.startswith("toolkit/"):
+            continue
+        # Reports contain the user's decisions. Only the generated index is
+        # replaceable; phase reports survive configuration changes.
+        if rel.startswith("reports/") and rel != "reports/README.md":
+            continue
+        stale = dest / rel
+        toolkit_parents.add(stale.parent)
+        _remove_owned_file(stale, rel, {rel: digest}, report=report)
+
+    desired_agents = _desired_agent_paths(plan, toolkit_root, policy)
+    owned_agents: dict[str, str] = state.get("agent_files", {})
+    for rel in sorted(owned_agents):
+        if _is_desired_agent_path(rel, desired_agents) or rel in handled_agent_paths:
+            continue
+        _remove_owned_file(project / rel, rel, owned_agents, report=report)
+
+    # Directories are not state entries. Prune only empty ancestors below the
+    # toolkit or a tool-specific dot directory.
+    if not report.dry_run:
+        candidates = {dest / "workflow", dest / "rules", dest / "skills", dest / "mcp"}
+        candidates.update(toolkit_parents)
+        candidates.update((project / rel).parent for rel in owned_agents)
+        for start in sorted(candidates, key=lambda p: len(p.parts), reverse=True):
+            current = start
+            while current != project and project in current.parents:
+                try:
+                    if not current.is_dir() or any(current.iterdir()):
+                        break
+                    current.rmdir()
+                except OSError:
+                    break
+                current = current.parent
+
+
 def execute(
     plan: InstallPlan,
     toolkit_root: Path,
     *,
     force: bool = False,
     dry_run: bool = False,
+    replace: bool = False,
 ) -> InstallResult:
     report = Report(dry_run=dry_run)
     project = plan.project
@@ -425,25 +654,34 @@ def execute(
             raise ToolkitError(f"project directory does not exist: {project}")
         project.mkdir(parents=True, exist_ok=True)
 
-    # 1. our own always-on policy + the planning workflow
+    policy = plan.policy or InstallPolicy(
+        "new" if plan.new_project else "existing", "adaptive", "ask",
+        "browser", False, "finish", "ask")
+
+    if replace:
+        _reconcile_replace(plan, toolkit_root, policy, report)
+
+    # 1. our own always-on policy + the optional planning workflow
     copy_tree(toolkit_root / "catalog" / "core", dest / "core", force=force, report=report)
-    copy_tree(
-        toolkit_root / "catalog" / "workflow", dest / "workflow", force=force, report=report
-    )
+    if policy.planning != "off":
+        copy_tree(
+            toolkit_root / "catalog" / "workflow", dest / "workflow",
+            force=force, report=report)
 
     # 2. packs
     for pack in plan.packs:
         _install_pack_files(pack, toolkit_root, dest, force=force, report=report)
 
     # 3. reports directory
-    write_text(
-        dest / "reports" / "README.md",
-        "# Phase reports\n\n"
-        "Each completed workflow phase writes one file here, named `NN-phase.md`.\n"
-        "They are the project's decision log - read them before re-planning.\n",
-        force=force,
-        report=report,
-    )
+    if policy.planning != "off":
+        write_text(
+            dest / "reports" / "README.md",
+            "# Phase reports\n\n"
+            "Each completed workflow phase writes one file here, named `NN-phase.md`.\n"
+            "They are the project's decision log - read them before re-planning.\n",
+            force=force,
+            report=report,
+        )
 
     uat_cmd = render.uat_invocation(project, toolkit_root)
     hook_script = dest / "hooks" / "session-start.sh"
@@ -453,10 +691,10 @@ def execute(
     # Union of what is already there and what these packs produce, so the
     # numbers are right during a dry run as well as after a real install.
     pred_rules, pred_skills = pack_outputs(plan.packs, toolkit_root)
-    rules = sorted(set(_installed_rules(dest)) | set(pred_rules))
-    skills = sorted(set(_installed_skills(dest)) | set(pred_skills))
+    rules = sorted(set(pred_rules) if replace else set(_installed_rules(dest)) | set(pred_rules))
+    skills = sorted(set(pred_skills) if replace else set(_installed_skills(dest)) | set(pred_skills))
     always = always_rules(plan.packs, toolkit_root)
-    specs = _collect_mcp_specs(dest)
+    specs = [] if replace else _collect_mcp_specs(dest)
     by_name = {sp.name: sp for sp in specs}
     for sp in predicted_mcp_specs(plan.packs, toolkit_root):
         by_name.setdefault(sp.name, sp)
@@ -465,8 +703,14 @@ def execute(
 
     # The workflow ships with the toolkit, so its presence is a property of the
     # source, not of the half-built target directory.
-    has_workflow = (toolkit_root / "catalog" / "workflow" / "README.md").is_file()
-    has_deploy = (dest / "deploy").exists() or (dest / "docker").exists()
+    has_workflow = policy.planning != "off"
+    if replace:
+        desired = _desired_toolkit_paths(plan, toolkit_root, policy)
+        has_deploy = any(
+            rel.startswith("deploy/") or rel.startswith("docker/")
+            for rel in desired)
+    else:
+        has_deploy = (dest / "deploy").exists() or (dest / "docker").exists()
 
     # 4. agent adapters - ONLY for the selected agents
     wrote_agents_md = False
@@ -487,6 +731,7 @@ def execute(
             has_deploy=has_deploy,
             skills_mount=mount,
             uat_cmd=uat_cmd,
+            policy=policy.__dict__,
         )
 
         # instruction file
@@ -571,6 +816,7 @@ def execute(
         has_deploy=has_deploy,
         skills_mount=primary_mount,
         uat_cmd=uat_cmd,
+        policy=policy.__dict__,
     )
     core_path = dest / "CORE.md"
     core_body = render.core_md(core_ctx)
@@ -626,13 +872,14 @@ def execute(
         )
 
     # 7. state
-    _write_state(dest, plan, toolkit_root, force=True, report=report)
+    _write_state(dest, plan, toolkit_root, force=True, report=report, replace=replace)
 
     return result
 
 
 def _write_state(
-    dest: Path, plan: InstallPlan, toolkit_root: Path, *, force: bool, report: Report
+    dest: Path, plan: InstallPlan, toolkit_root: Path, *, force: bool, report: Report,
+    replace: bool = False,
 ) -> None:
     now = _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat()
 
@@ -644,6 +891,9 @@ def _write_state(
             k: v for k, v in sorted(plan.detection.evidence.items())
         },
         "new_project": plan.new_project,
+        **((plan.policy or InstallPolicy(
+            "new" if plan.new_project else "existing", "adaptive", "ask",
+            "browser", False, "finish", "ask")).__dict__),
         "updated_at": now,
     }
     existing = read_json(dest / PROJECT_FILE, default={})
@@ -659,7 +909,13 @@ def _write_state(
     # recorded hash, otherwise the user's edit silently becomes the baseline
     # and `uat status` would report no drift.
     previous: dict[str, str] = read_json(dest / STATE_FILE, default={}).get("files", {})
-    files: dict[str, str] = dict(previous)
+    desired_toolkit = _desired_toolkit_paths(plan, toolkit_root, plan.policy or InstallPolicy(
+        "new" if plan.new_project else "existing", "adaptive", "ask",
+        "browser", False, "finish", "ask"))
+    files: dict[str, str] = (
+        {rel: digest for rel, digest in previous.items() if rel in desired_toolkit}
+        if replace else dict(previous)
+    )
 
     if not report.dry_run:
         for action in report.actions:
@@ -678,8 +934,15 @@ def _write_state(
     # Files we created outside .agent-toolkit/, with the hash we wrote. Uninstall
     # uses this instead of guessing ownership from file content - a hand-written
     # CLAUDE.md that merely mentions the toolkit is NOT ours to delete.
-    agent_files: dict[str, str] = dict(
-        read_json(dest / STATE_FILE, default={}).get("agent_files", {})
+    previous_agents = read_json(dest / STATE_FILE, default={}).get("agent_files", {})
+    desired_agents = _desired_agent_paths(
+        plan, toolkit_root, plan.policy or InstallPolicy(
+            "new" if plan.new_project else "existing", "adaptive", "ask",
+            "browser", False, "finish", "ask"))
+    agent_files: dict[str, str] = (
+        {rel: digest for rel, digest in previous_agents.items()
+         if _is_desired_agent_path(rel, desired_agents)}
+        if replace else dict(previous_agents)
     )
     project = dest.parent
     if not report.dry_run:
@@ -992,6 +1255,13 @@ def refresh(project: Path, toolkit_root: Path, registry: Registry, *, report: Re
 
     specs = _collect_mcp_specs(dest)
     skills = _installed_skills(dest)
+    catalog = Catalog.load(toolkit_root)
+    packs = []
+    for pack_id in state.get("packs", []):
+        try:
+            packs.append(catalog.get(pack_id))
+        except ToolkitError:
+            continue
     primary_mount = next(
         (a.skills_path for a in agents if a.supports_skills and skills), None
     )
@@ -1006,6 +1276,8 @@ def refresh(project: Path, toolkit_root: Path, registry: Registry, *, report: Re
         has_deploy=(dest / "deploy").exists() or (dest / "docker").exists(),
         skills_mount=primary_mount,
         uat_cmd=render.uat_invocation(project, toolkit_root),
+        always_rules=always_rules(packs, toolkit_root),
+        policy=doc,
     )
 
     core_path = dest / "CORE.md"

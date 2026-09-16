@@ -2,6 +2,7 @@
   "id": "deploy-ubuntu",
   "title": "Ubuntu deployment (clean + existing server)",
   "tier": "recommended",
+  "category": "infrastructure",
   "tags": ["infra", "deploy"],
   "detect": [],
   "summary": "Working bash for provisioning a clean Ubuntu server, adding an app to a server that already runs other things, deploying releases atomically, and rolling back."

@@ -78,6 +78,13 @@ If a `ui-ux-pro-max` or equivalent design skill is installed, use it. It
 carries style catalogues, palettes and font pairings that beat inventing from
 scratch.
 
+Read `"image_generation"` from `.agent-toolkit/project.json`. With `ask`, list
+the proposed logo, icon, background, hero, or content assets and ask before
+generating them. With `auto`, generate suitable original assets when they
+materially improve the design. With `off`, use existing or code-native assets.
+If `CODEX-IMAGE-GENERATION.md` is installed, follow its availability probe,
+non-overwrite rules, and inspection requirements.
+
 ### Then the system, then the screens
 
 Define tokens before components and components before pages:

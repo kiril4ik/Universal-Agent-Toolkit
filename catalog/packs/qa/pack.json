@@ -2,6 +2,7 @@
   "id": "qa",
   "title": "QA engineering",
   "tier": "optional",
+  "category": "browser-quality",
   "tags": [
     "testing"
   ],

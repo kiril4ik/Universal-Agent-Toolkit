@@ -2,6 +2,7 @@
   "id": "devops",
   "title": "DevOps principles",
   "tier": "optional",
+  "category": "infrastructure",
   "tags": [
     "infra"
   ],

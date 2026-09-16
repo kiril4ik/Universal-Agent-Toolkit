@@ -2,6 +2,7 @@
   "id": "slides",
   "title": "Presentation slides",
   "tier": "optional",
+  "category": "design-content",
   "tags": [
     "design"
   ],

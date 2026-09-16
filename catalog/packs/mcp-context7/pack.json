@@ -2,6 +2,7 @@
   "id": "mcp-context7",
   "title": "Context7 MCP (live docs)",
   "tier": "recommended",
+  "category": "integrations",
   "tags": ["mcp", "docs"],
   "detect": [],
   "summary": "Fetches current, version-specific library documentation. Counters the model's stale training data on fast-moving frameworks."

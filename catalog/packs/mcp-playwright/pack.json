@@ -2,6 +2,7 @@
   "id": "mcp-playwright",
   "title": "Playwright MCP (browser)",
   "tier": "recommended",
+  "category": "browser-quality",
   "tags": ["mcp", "testing", "frontend"],
   "detect": ["frontend"],
   "summary": "Drive a real browser: navigate, click, fill, screenshot. Lets the agent verify UI work instead of asserting it works."

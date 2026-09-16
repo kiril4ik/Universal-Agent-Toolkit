@@ -2,6 +2,7 @@
   "id": "kubernetes",
   "title": "Kubernetes",
   "tier": "optional",
+  "category": "infrastructure",
   "tags": [
     "infra"
   ],

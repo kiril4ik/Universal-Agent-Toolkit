@@ -2,6 +2,7 @@
   "id": "kubernetes-manifests",
   "title": "Kubernetes manifests",
   "tier": "optional",
+  "category": "infrastructure",
   "tags": [
     "infra"
   ],

@@ -12,7 +12,7 @@ from . import embed as embedlib
 from . import install as inst
 from . import vendorlib
 from .catalog import Catalog, TIERS
-from .detect import detect
+from .detect import detect, looks_like_new_project
 from .registry import Registry
 from .util import Report, ToolkitError, bold, cyan, dim, green, red, yellow
 
@@ -38,20 +38,26 @@ def _interactive_packs(catalog: Catalog, recommended: set[str], detection) -> se
 
 
 def _choose_mode() -> str:
-    print()
-    print(bold("How autonomous should the agent be?"))
-    print("  1  thorough    ask every question that materially affects the result")
-    print("  2  focused     ask only blocking questions, use sensible defaults  " + dim("(default)"))
-    print("  3  autonomous  decide independently; interrupt only for risky or ambiguous calls")
-    print()
-    try:
-        answer = input("> ").strip()
-    except (EOFError, KeyboardInterrupt):
-        print()
-        raise ToolkitError("cancelled")
-    return {"1": "thorough", "2": "focused", "3": "autonomous", "": "focused"}.get(
-        answer, "focused"
-    )
+    return _choose_value("How autonomous should the agent be?", (
+        ("thorough", "ask every question that materially affects the result"),
+        ("focused", "ask only blocking questions; use sensible defaults"),
+        ("autonomous", "interrupt only for risky or ambiguous calls"),
+    ), "focused")
+
+
+def _choose_value(label: str, options, default: str) -> str:
+    """Ask one progressive-setup question with a reproducible default."""
+    from .picker import choose_one
+
+    return choose_one(label, options, default)
+
+
+def _choose_agents(registry: Registry) -> list[str]:
+    from .picker import choose_many
+
+    options = tuple((agent.id, agent.name) for agent in registry)
+    selected = choose_many("Choose coding tools", options, require_one=True)
+    return [agent.id for agent in registry if agent.id in selected]
 
 
 # ----------------------------------------------------------------------
@@ -145,13 +151,14 @@ def cmd_catalog(args) -> int:
     print(bold(f"{len(catalog)} packs"))
     last = None
     for pack in catalog:
-        if pack.tier != last:
-            print(f"\n  {bold(pack.tier.upper())}")
-            last = pack.tier
+        if pack.category != last:
+            print(f"\n  {bold(pack.category.replace('-', ' ').upper())}")
+            last = pack.category
         prov = pack.provides()
         bits = [f"{v} {k}" for k, v in prov.items() if v]
         vend = cyan(" vendored") if pack.vendor_maps else ""
-        print(f"    {pack.id:<26} {pack.title:<34} {dim(', '.join(bits))}{vend}")
+        tier = dim(f"[{pack.tier}]")
+        print(f"    {pack.id:<26} {pack.title:<34} {tier} {dim(', '.join(bits))}{vend}")
     if catalog.profiles:
         print(f"\n  {bold('PROFILES')}")
         for name in sorted(catalog.profiles):
@@ -166,9 +173,29 @@ def cmd_detect(args) -> int:
     print(bold(f"Stack detection: {project}"))
     if not d.tokens:
         print(dim("  nothing detected - looks like a new/empty project"))
-        return 0
+        if not args.recommend:
+            return 0
     for token in sorted(d.tokens):
         print(f"  {green(token):<28} {dim(d.why(token))}")
+    if args.recommend:
+        _, catalog = _load(TOOLKIT_ROOT)
+        print(f"\n{bold('Matching install capabilities')}")
+        matches = [p for p in catalog if p.tier == "core" or set(p.detect) & d.tokens]
+        for pack in matches:
+            rules, skills = inst.pack_outputs([pack], TOOLKIT_ROOT)
+            servers = [s.name for s in inst.predicted_mcp_specs([pack], TOOLKIT_ROOT)]
+            content = []
+            if rules:
+                content.append("rules: " + ", ".join(rules))
+            if skills:
+                content.append("skills: " + ", ".join(skills))
+            if servers:
+                content.append("MCP: " + ", ".join(servers))
+            reason = "default" if pack.tier == "core" else "detected: " + ", ".join(
+                sorted(set(pack.detect) & d.tokens))
+            print(f"  {pack.id:<26} {reason}")
+            if content:
+                print(dim("    " + "; ".join(content)))
     return 0
 
 
@@ -176,7 +203,7 @@ def _resolve_selection(args, registry, catalog, project):
     detection = detect(project)
     if args.all:
         recommended = set(catalog.ids)
-    elif args.packs:
+    elif args.packs is not None:
         recommended = catalog.expand(set(args.packs))
     elif args.profile:
         recommended = catalog.resolve_profile(args.profile)
@@ -250,11 +277,21 @@ def _offer_path_symlink(toolkit_root: Path) -> None:
 
 
 def cmd_install(args) -> int:
+    if args.with_vendor and not args.embed:
+        raise ToolkitError("--with-vendor requires --embed")
+
     registry, catalog = _load(TOOLKIT_ROOT)
     project = _project(args)
 
     interactive = (sys.stdin.isatty() and sys.stdout.isatty()
                    and not args.yes and not args.dry_run)
+    if not args.agent:
+        if not interactive:
+            raise ToolkitError(
+                "install requires --agent in non-interactive mode "
+                "(e.g. --agent claude-code, or --agent all)"
+            )
+        args.agent = _choose_agents(registry)
 
     # An install into a configured project EXTENDS it. Anything else means
     # `--add go` silently drops the packs, agents and mode already recorded -
@@ -264,11 +301,70 @@ def cmd_install(args) -> int:
         project / inst.TOOLKIT_DIR / inst.PROJECT_FILE, default={})
     merging = bool(previous) and not args.replace
 
+    detected_defaults = detect(project)
+
+    def recorded(name, fallback):
+        return prev_doc.get(name, fallback) if merging else fallback
+
+    if interactive:
+        detected_kind = "new" if looks_like_new_project(project) else "existing"
+        if args.project_kind is None:
+            args.project_kind = _choose_value("What kind of project is this?", (
+                ("new", "empty or being created"),
+                ("existing", "preserve and extend an existing codebase"),
+            ), recorded("project_kind", detected_kind))
+
     mode = args.mode
     if mode is None and merging and prev_doc.get("mode") in inst.MODES:
         mode = prev_doc["mode"]
     if mode is None:
         mode = _choose_mode() if interactive else "focused"
+
+    if interactive:
+        if args.planning is None:
+            args.planning = _choose_value("Planning workflow", (
+                ("adaptive", "triage runs only the phases the work needs"),
+                ("full", "use the complete applicable product workflow"),
+                ("off", "install no planning workflow or commands"),
+            ), recorded("planning", "adaptive"))
+        if args.technology_additions is None:
+            args.technology_additions = _choose_value("Technology rules and skills", (
+                ("ask", "show detected additions and ask before installing"),
+                ("auto", "install matching additions automatically"),
+                ("off", "report matches but never install them automatically"),
+            ), recorded("technology_additions", "ask"))
+        if args.acceptance is None:
+            default_acceptance = "full" if "frontend" in detected_defaults.tokens else "browser"
+            args.acceptance = _choose_value("Acceptance testing", (
+                ("full", "exercise every documented user journey"),
+                ("browser", "verify only affected browser flows"),
+                ("off", "disable the acceptance phase"),
+            ), recorded("acceptance", default_acceptance))
+        if args.visual_validation is None:
+            visual_default = recorded(
+                "visual_validation", "frontend" in detected_defaults.tokens)
+            args.visual_validation = _choose_value("Responsive screenshots", (
+                ("on", "capture pages at mobile, tablet, and desktop widths"),
+                ("off", "skip screenshot-based layout validation"),
+            ), "on" if visual_default else "off") == "on"
+        if args.db_backups is None:
+            args.db_backups = _choose_value("Database backups", (
+                ("finish", "dump persistent databases after final tests"),
+                ("risky", "back up only before risky data operations"),
+                ("off", "disable completion dumps; destructive gates remain"),
+            ), recorded("db_backups", "finish"))
+        if args.image_generation is None:
+            args.image_generation = _choose_value("Codex image generation", (
+                ("ask", "offer image generation when a visual asset would help"),
+                ("auto", "use it automatically when available"),
+                ("off", "do not use Codex for generated images"),
+            ), recorded("image_generation", "ask"))
+
+    def policy_value(name, fallback):
+        value = getattr(args, name)
+        if value is None and merging:
+            value = prev_doc.get(name)
+        return fallback if value is None else value
 
     detection, recommended = _resolve_selection(args, registry, catalog, project)
 
@@ -298,6 +394,13 @@ def cmd_install(args) -> int:
         explicit_packs=sorted(recommended),
         add_packs=args.add,
         skills_mode="copy" if args.copy else None,
+        project_kind=policy_value("project_kind", "auto"),
+        planning=policy_value("planning", "adaptive"),
+        technology_additions=policy_value("technology_additions", "ask"),
+        acceptance=policy_value("acceptance", None),
+        visual_validation=policy_value("visual_validation", None),
+        db_backups=policy_value("db_backups", "finish"),
+        image_generation=policy_value("image_generation", "ask"),
     )
 
     print()
@@ -305,11 +408,23 @@ def cmd_install(args) -> int:
     print(f"  project   {project}")
     print(f"  agents    {', '.join(a.name for a in plan.agents)}")
     print(f"  mode      {plan.mode}")
+    print(f"  kind      {plan.policy.project_kind}")
+    print(f"  planning  {plan.policy.planning}")
+    print(f"  tech      {plan.policy.technology_additions}")
+    print(f"  acceptance {plan.policy.acceptance}")
+    print(f"  visuals   {'on' if plan.policy.visual_validation else 'off'}")
+    print(f"  db dumps  {plan.policy.db_backups}")
+    print(f"  images    {plan.policy.image_generation}")
     print(f"  packs     {len(plan.packs)}  " + dim(", ".join(plan.pack_ids)))
     if merging:
         print(dim(f"            (extending the existing install; "
                   f"--replace to start over)"))
     print(f"  skills    {plan.skills_mode}")
+    rules, skills = inst.pack_outputs(plan.packs, TOOLKIT_ROOT)
+    servers = [s.name for s in inst.predicted_mcp_specs(plan.packs, TOOLKIT_ROOT)]
+    print(f"  Rules:       {', '.join(rules) or '-'}")
+    print(f"  Skills:      {', '.join(skills) or '-'}")
+    print(f"  MCP servers: {', '.join(servers) or '-'}")
     print()
     print(f"  {bold('creates one folder:')} .agent-toolkit/")
     outside = plan.files_outside_toolkit()
@@ -319,7 +434,13 @@ def cmd_install(args) -> int:
     print()
 
     if args.dry_run:
-        result = inst.execute(plan, TOOLKIT_ROOT, force=args.force, dry_run=True)
+        if args.embed:
+            _do_embed(project, with_vendor=args.with_vendor, force=args.force,
+                      verbose=args.verbose, dry_run=True)
+            print()
+        result = inst.execute(
+            plan, TOOLKIT_ROOT, force=args.force, dry_run=True,
+            replace=args.replace)
         print(bold("Dry run - no changes written"))
         rendered = result.report.render(project, verbose=args.verbose)
         if rendered:
@@ -344,7 +465,7 @@ def cmd_install(args) -> int:
                   verbose=args.verbose)
         print()
 
-    result = inst.execute(plan, TOOLKIT_ROOT, force=args.force)
+    result = inst.execute(plan, TOOLKIT_ROOT, force=args.force, replace=args.replace)
     rendered = result.report.render(project, verbose=args.verbose)
     if rendered:
         print(rendered)
@@ -385,11 +506,15 @@ def cmd_install(args) -> int:
     print()
     print(green(bold("Installed.")) + " Next:")
     print(f"  1. read  {project}/.agent-toolkit/CORE.md")
-    print(f"  2. start planning: point your agent at .agent-toolkit/workflow/README.md")
+    if plan.policy.planning != "off":
+        print(f"  2. start planning: point your agent at .agent-toolkit/workflow/README.md")
     return 0 if result.ok else 2
 
 
-def _do_embed(project: Path, *, with_vendor: bool, force: bool, verbose: bool) -> None:
+def _do_embed(
+    project: Path, *, with_vendor: bool, force: bool, verbose: bool,
+    dry_run: bool = False,
+) -> None:
     """Copy the toolkit into the project's .agent-toolkit/toolkit/."""
     size = embedlib.estimate_size(TOOLKIT_ROOT, with_vendor=with_vendor)
     print(bold("Embedding the toolkit into the project"))
@@ -397,7 +522,7 @@ def _do_embed(project: Path, *, with_vendor: bool, force: bool, verbose: bool) -
     print(f"  vendored     {'yes - fully offline' if with_vendor else 'no'}")
     print(f"  adds         ~{embedlib.human(size)}")
 
-    report = Report()
+    report = Report(dry_run=dry_run)
     dest = embedlib.embed(
         TOOLKIT_ROOT, project, with_vendor=with_vendor, force=force, report=report
     )
@@ -804,6 +929,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     d = sub.add_parser("detect", help="show what stack is detected in a project")
     d.add_argument("--project", default=".")
+    d.add_argument("--recommend", action="store_true",
+                   help="show matching packs and their exact content")
     d.set_defaults(func=cmd_detect)
 
     i = sub.add_parser("install", help="install the toolkit into a project")
@@ -813,6 +940,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="coding agent to configure; repeatable, or 'all'",
     )
     i.add_argument("--mode", choices=inst.MODES, help="interaction mode")
+    i.add_argument("--project-kind", choices=inst.PROJECT_KINDS)
+    i.add_argument("--planning", choices=inst.PLANNING_MODES)
+    i.add_argument("--technology-additions", choices=inst.TECHNOLOGY_ADDITION_MODES)
+    i.add_argument("--acceptance", choices=inst.ACCEPTANCE_MODES)
+    i.add_argument("--visual-validation", action=argparse.BooleanOptionalAction,
+                   default=None)
+    i.add_argument("--db-backups", choices=inst.DB_BACKUP_MODES)
+    i.add_argument("--image-generation", choices=inst.IMAGE_GENERATION_MODES)
     i.add_argument("--profile", help="install a named profile")
     i.add_argument("--packs", nargs="*", metavar="ID", help="install exactly these packs")
     i.add_argument("--add", nargs="*", default=[], metavar="ID", help="add packs to the selection")
@@ -896,8 +1031,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if getattr(args, "cmd", None) == "install" and not args.agent:
-        parser.error("install requires --agent (e.g. --agent claude-code, or --agent all)")
     try:
         return args.func(args)
     except ToolkitError as exc:

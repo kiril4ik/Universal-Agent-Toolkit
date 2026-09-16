@@ -3,6 +3,12 @@
 Decide how much process this work deserves, and say the answer out loud
 before doing anything else. The human can then override you cheaply.
 
+First read `"planning"` from `.agent-toolkit/project.json`. With `full`, run
+every phase that applies to the product surface (for example, UI phases still
+do not apply to a headless library). With `adaptive`, use the classification
+below. `off` normally means this workflow was not installed at all; if you are
+reading a leftover copy, stop using it.
+
 ## Classify
 
 **Task** - a bounded change to a flow that already exists in this repository.

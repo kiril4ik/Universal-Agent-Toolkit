@@ -18,6 +18,10 @@ from typing import Any
 from .util import ToolkitError, read_json
 
 TIERS = ("core", "recommended", "optional")
+CATEGORIES = (
+    "engineering", "technology", "browser-quality", "design-content",
+    "infrastructure", "integrations",
+)
 
 
 @dataclass
@@ -51,6 +55,7 @@ class Pack:
     title: str
     tier: str
     summary: str
+    category: str = "technology"
     tags: tuple[str, ...] = ()
     detect: tuple[str, ...] = ()        # stack tokens that recommend this pack
     requires: tuple[str, ...] = ()
@@ -139,6 +144,7 @@ class Catalog:
                     title=data.get("title", pid),
                     tier=tier,
                     summary=data.get("summary", ""),
+                    category=data.get("category", "technology"),
                     tags=tuple(data.get("tags") or ()),
                     detect=tuple(data.get("detect") or ()),
                     requires=tuple(data.get("requires") or ()),
@@ -159,6 +165,10 @@ class Catalog:
 
     def validate(self) -> None:
         for pack in self._packs.values():
+            if pack.category not in CATEGORIES:
+                raise ToolkitError(
+                    f"pack {pack.id}: category must be one of {CATEGORIES}, "
+                    f"got {pack.category!r}")
             for dep in pack.requires:
                 if dep not in self._packs:
                     raise ToolkitError(f"pack {pack.id} requires unknown pack {dep!r}")
@@ -169,7 +179,10 @@ class Catalog:
 
     # ------------------------------------------------------------------
     def __iter__(self):
-        return iter(sorted(self._packs.values(), key=lambda p: (TIERS.index(p.tier), p.id)))
+        return iter(sorted(
+            self._packs.values(),
+            key=lambda p: (CATEGORIES.index(p.category), TIERS.index(p.tier), p.id),
+        ))
 
     def __contains__(self, pid: str) -> bool:
         return pid in self._packs

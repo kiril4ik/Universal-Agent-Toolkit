@@ -32,6 +32,7 @@ class RenderContext:
     skills_mount: str | None = None   # tool-native skills path, if any
     uat_cmd: str = "uat"              # how to invoke the CLI from this project
     always_rules: list[str] = field(default_factory=list)  # apply to all code
+    policy: dict = field(default_factory=dict)
 
 
 def uat_invocation(project, toolkit_root) -> str:
@@ -95,9 +96,9 @@ def core_md(ctx: RenderContext) -> str:
 anything on a new project, a new feature, or an unfamiliar codebase.
 
 The sequence: triage -> discovery -> business logic -> screens & flows ->
-content -> design -> stack -> rules -> architecture -> environments -> plan
--> gate. Triage decides how much of it applies; a one-line fix runs discovery
-and stops.
+stack -> rules -> architecture -> content -> design -> environments -> plan
+-> gate -> execute -> acceptance. Triage decides how much applies; a one-line
+fix runs discovery and stops.
 
 **Nothing is implemented until the gate in `workflow/11-gate.md` passes and a
 human approves.**
@@ -113,8 +114,8 @@ Check progress at any time:
 
 ## Managing this install
 
-Rules are installed per technology. When phase 06 settles the stack, phase 07
-installs the matching rules - do not hand-write what a pack already provides:
+Rules are installed per technology. Once the stack is settled, install its
+matching rules - do not hand-write what a pack already provides:
 
 ```bash
 {ctx.uat_cmd} detect  --project .                       # what stack is here
@@ -140,6 +141,19 @@ without `--force`.
         if ctx.has_deploy
         else ""
     )
+    policy = ctx.policy
+    policy_summary = ""
+    if policy:
+        policy_summary = (
+            "\n## Project workflow policy\n\n"
+            f"- Project: `{policy.get('project_kind')}`\n"
+            f"- Planning: `{policy.get('planning')}`\n"
+            f"- Technology additions: `{policy.get('technology_additions')}`\n"
+            f"- Acceptance: `{policy.get('acceptance')}`\n"
+            f"- Visual validation: `{'on' if policy.get('visual_validation') else 'off'}`\n"
+            f"- Database backups: `{policy.get('db_backups')}`\n"
+            f"- Image generation: `{policy.get('image_generation')}`\n"
+        )
 
     return f"""# {ctx.project_name} - AI agent control plane
 
@@ -162,6 +176,7 @@ These are short. Read them once per session and honour them throughout.
 - `{TOOLKIT_DIR}/core/VERIFICATION.md` - evidence before claiming success.
 {workflow}
 {_always_rule_lines(ctx)}
+{policy_summary}
 ## Stack rules - read the ones relevant to the file you are touching
 
 {_rule_lines(ctx)}
@@ -297,8 +312,8 @@ Follow it exactly, in order:
    `workflow/templates/report.md`.
 5. **Respect the interaction mode** in `{toolkit}/project.json` (currently
    `{mode}`). It controls how much you ask, never whether safety gates apply.
-6. **When the stack is decided (phase 06), install its rules (phase 07)**:
-   `{uat} detect --project .` then `{uat} install --project . --agent {agent} --add <pack>`.
+6. **When the stack is decided, install its rules**:
+   `{uat} detect --recommend --project .` then `{uat} install --project . --agent {agent} --add <pack>`.
    Do not hand-write rules a pack already provides.
 7. **Stop at the gate** (`workflow/11-gate.md`). Present the plan and wait for
    explicit approval. Do not begin implementing in the same message.
@@ -311,10 +326,10 @@ Follow it exactly, in order:
 
 Do not invoke skills up front. Each phase names the skill it uses:
 
-- phase 02 and 06 -> `brainstorming` (technique only)
-- phase 10 -> `writing-plans` (it owns the plan format and location)
-- phase 12 -> `subagent-driven-development` or `executing-plans`
-- phase 13 -> the Playwright MCP, to drive journeys rather than screenshot them
+- business logic and architecture -> `brainstorming` (technique only)
+- implementation plan -> `writing-plans` (it owns the plan format and location)
+- execution -> `subagent-driven-development` or `executing-plans`
+- acceptance -> the Playwright MCP, to drive journeys rather than screenshot them
 - throughout implementation -> `test-driven-development`,
   `systematic-debugging`, `verification-before-completion`
 
@@ -382,22 +397,22 @@ resuming - they are the project's decision log.
 
 ## The sequence
 
-| # | Phase | Produces |
-|---|---|---|
-| 00 | triage | class + phase list |
-| 01 | discovery | reports/01-discovery.md |
-| 02 | business logic | docs/business-logic.md |
-| 03 | screens & flows | docs/screens.md |
-| 04 | content | docs/content/ |
-| 05 | design | docs/design/ |
-| 06 | stack | docs/stack.md |
-| 07 | rules | installed rule packs |
-| 08 | architecture | docs/architecture.md |
-| 09 | environments | Docker + deploy scripts |
-| 10 | implementation plan | docs/plan.md |
-| 11 | **gate** | go / no-go - approval never skipped |
-| 12 | execute | working code |
-| 13 | **acceptance** | every journey performed against a running system |
+| Phase | Produces |
+|---|---|
+| triage | class + applicable phase list |
+| discovery | discovery report |
+| business logic | `docs/business-logic.md` |
+| screens & flows | `docs/screens.md` |
+| stack | `docs/stack.md` |
+| rules | installed rule packs |
+| architecture | `docs/architecture.md` |
+| content | `docs/content/` |
+| design | `docs/design/` |
+| environments | Docker + deploy scripts |
+| implementation plan | `docs/plan.md` |
+| **gate** | go / no-go - approval never skipped |
+| execute | working code |
+| **acceptance** | every journey performed against a running system |
 
 Triage decides how many of these apply. A one-line fix runs 01 and stops; a
 new product runs everything.
@@ -405,7 +420,7 @@ new product runs everything.
 ## Installing rules for a new technology
 
 ```bash
-{uat} detect  --project .
+{uat} detect --recommend --project .
 {uat} catalog
 {uat} install --project . --agent {agent} --add <pack>
 ```

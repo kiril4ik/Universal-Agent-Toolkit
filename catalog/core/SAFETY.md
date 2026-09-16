@@ -79,6 +79,26 @@ Examples requiring the gate:
 - production restore/import;
 - significant migration batches where rollback is non-trivial.
 
+## Development completion dumps
+
+Read `"db_backups"` from `.agent-toolkit/project.json` whenever the project
+uses a database:
+
+- `finish` - after implementation and testing, create a fresh logical dump.
+- `risky` - create one before destructive or hard-to-reverse data work only.
+- `off` - do not create an automatic completion dump.
+
+Write development dumps below `backups/db/` in the project repository. Add
+that directory to the project's ignore file before writing a dump; dumps may
+contain secrets or personal data and must never be committed. Use a filename
+that includes the engine, environment, database name, and UTC timestamp, for
+example `postgres-development-app-20260915T143000Z.sql.gz`.
+
+Use the database engine's supported logical dump tool, check its exit status,
+and record the path and restore command without exposing credentials. A dump
+is not verified until it is non-empty; for high-risk changes, restore it into
+a disposable database as well. Never overwrite an earlier dump.
+
 ## Environment detection
 
 Before a high-impact command, verify environment using multiple signals where available: hostname, compose/project name, `.env` target, DB host/name, deployment path, cloud/account identifiers. If uncertain, stop.

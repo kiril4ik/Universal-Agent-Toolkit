@@ -105,7 +105,7 @@ an oversight.
 
 ```
 vendor/          9.4 MB   the actual content, fetched from pinned commits
-catalog/packs/    328 KB   62 packs - mostly small JSON pointers into vendor/
+catalog/packs/    360 KB   64 packs - mostly small JSON pointers into vendor/
 ```
 
 A pack does not contain content. It says *which* vendored file to install,
@@ -172,8 +172,8 @@ uat add-rule awesome-copilot:wordpress --project .
 
 1. Change `ref` in [`catalog/vendor.json`](../catalog/vendor.json) to the new
    commit.
-2. `./bin/uat vendor sync --only <id>`
-3. `./bin/uat doctor` — every pack's `vendor_maps` must still resolve. This
+2. `uat vendor sync --only <id>`
+3. `uat doctor` — every pack's `vendor_maps` must still resolve. This
    is where an upstream that renamed or removed a file is caught.
 4. `./bin/uat-test`
 5. Commit the snapshot change and the pin change **together**, so the

@@ -1,0 +1,15 @@
+{
+  "id": "codex-image-generation",
+  "title": "Codex image generation",
+  "tier": "recommended",
+  "category": "design-content",
+  "tags": [
+    "frontend",
+    "design",
+    "content"
+  ],
+  "detect": [
+    "frontend"
+  ],
+  "summary": "Generate project images through an available, responsive Codex CLI and verify each asset before using it."
+}

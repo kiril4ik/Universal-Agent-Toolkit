@@ -4,12 +4,13 @@
 uat [--verbose] <command> [options]
 ```
 
-`uat` is `./bin/uat` from a toolkit checkout, or `.agent-toolkit/toolkit/uat`
-inside an embedded project. On Windows PowerShell use `.\bin\uat.cmd` or
-`.\.agent-toolkit\toolkit\uat.cmd`, respectively. A successful Windows
-non-embedded install sets up user PATH automatically; see
-[PATH setup](GETTING-STARTED.md#2a-path-setup). `--verbose` is global and makes the change report
-list unchanged files too, not only additions and conflicts.
+`uat` is the toolkit launcher on PATH. An embedded project can instead use
+`.agent-toolkit/toolkit/uat` on Unix or `.\.agent-toolkit\toolkit\uat.cmd`
+on Windows. A successful Windows non-embedded install sets up user PATH
+automatically; the initial setup also documents how to put it on PATH before
+the first command. See [PATH setup](GETTING-STARTED.md#2a-path-setup).
+`--verbose` is global and makes the change report list unchanged files too,
+not only additions and conflicts.
 
 Every command that touches a project takes `--project PATH` (default: the
 current directory).
@@ -58,8 +59,9 @@ live in [`catalog/agents.json`](../catalog/agents.json), never in code — see
 uat catalog [--unmapped] [--search TERM]
 ```
 
-With no flags: every pack grouped by tier (`CORE`, `RECOMMENDED`,
-`OPTIONAL`), then every profile with its pack count.
+With no flags: every pack grouped by capability (`ENGINEERING`, `TECHNOLOGY`,
+`BROWSER QUALITY`, `DESIGN CONTENT`, `INFRASTRUCTURE`, `INTEGRATIONS`), with
+its default/recommended/optional tier, then every profile with its pack count.
 
 | Flag | What it does |
 |---|---|
@@ -80,7 +82,7 @@ The long tail is reachable with [`add-rule`](#uat-add-rule). See
 ## `uat detect`
 
 ```
-uat detect [--project PATH]
+uat detect [--project PATH] [--recommend]
 ```
 
 Prints every detected token and the file that proves it — `react` because
@@ -103,12 +105,23 @@ Stack detection: /home/me/app
 These tokens drive pack recommendation. A pack declares `"detect": ["go"]`
 and is pre-selected when that token is present.
 
+`--recommend` also prints every matching pack and the exact rules, skills, and
+MCP servers it would add. This is the non-interactive technology-coverage
+preview used by the planning workflow.
+
 ---
 
 ## `uat install`
 
 ```
 uat install [--project PATH] [--agent ID]... [--mode MODE]
+            [--project-kind {auto,new,existing}]
+            [--planning {adaptive,full,off}]
+            [--technology-additions {ask,auto,off}]
+            [--acceptance {full,browser,off}]
+            [--visual-validation | --no-visual-validation]
+            [--db-backups {finish,risky,off}]
+            [--image-generation {ask,auto,off}]
             [--profile NAME] [--packs ID...] [--add ID...] [--all]
             [--yes] [--no-path] [--force] [--dry-run] [--copy] [--replace]
             [--embed] [--with-vendor]
@@ -158,14 +171,36 @@ re-install, the recorded mode is kept; omitted with `--yes`, it defaults to
 `focused`. Recorded in `.agent-toolkit/project.json`. See
 [Core policy](CORE-POLICY.md#interaction-modes).
 
+### Project workflow policy
+
+Interactive setup asks each of these progressively. The equivalent silent
+flags make every choice reproducible. Single-choice settings use
+**Up/Down** and **Enter**; coding tools and capability lists add **Space** to
+toggle multiple selections:
+
+| Flag | Values and default |
+|---|---|
+| `--project-kind` | `auto` (default), `new`, `existing` |
+| `--planning` | `adaptive` (default), `full`, `off`; `off` installs no workflow, reports, entry point, or planning commands |
+| `--technology-additions` | `ask` (default), `auto`, `off` |
+| `--acceptance` | frontend default `full`, otherwise `browser`; or `off` |
+| `--visual-validation` / `--no-visual-validation` | on for detected frontends, otherwise off |
+| `--db-backups` | `finish` (default), `risky`, `off` |
+| `--image-generation` | `ask` (default), `auto`, `off` |
+
+The resolved choices are stored in `.agent-toolkit/project.json`, where the
+installed policies and workflow read them. Explicit user instructions still
+take precedence.
+
 ### Extend vs replace
 
 An install into a configured project **extends** it: previously installed
 packs, configured agents and the recorded mode are all kept. So
 `--add go` mid-project does not silently drop your Cursor config.
 
-`--replace` drops packs and agents not named in this command, and starts the
-recorded configuration over.
+`--replace` drops packs and agents not named in this command and removes their
+unchanged generated files, MCP entries, and hooks. Locally edited or foreign
+content is preserved and reported as a conflict.
 
 ### Safety and output flags
 
@@ -354,7 +389,7 @@ and no undeclared directory is sitting in `vendor/`.
 ```
 Toolkit self-check
   ok  registry: 14 agents
-  ok  catalog:  62 packs, 6 profiles
+  ok  catalog:  64 packs, 6 profiles
   ok  vendor superpowers: b36e082 verified
   ...
   ok  every vendored skill is reachable by a pack

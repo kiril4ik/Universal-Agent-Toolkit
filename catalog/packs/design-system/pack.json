@@ -2,6 +2,7 @@
   "id": "design-system",
   "title": "Design system builder",
   "tier": "optional",
+  "category": "design-content",
   "tags": [
     "design"
   ],
