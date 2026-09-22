@@ -53,87 +53,48 @@ a PowerShell execution-policy change. Bash-based packs, such as the session
 reminder, still need Bash; use Git Bash or WSL for those scripts. Ubuntu
 deployment scripts run on Ubuntu.
 
-## 2. Clone the toolkit and install
+## 2. Set up the reusable CLI
 
-Keep the checkout outside your application. One checkout can configure many
-projects.
+Keep the git checkout outside your application. One checkout can configure
+many projects. `uat setup` copies the runnable toolkit to a standard per-user
+location and makes its launcher available on PATH.
 
 ### macOS / Linux
 
 ```bash
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git ~/tools/universal-agent-toolkit
-mkdir -p ~/.local/bin
-ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
-export PATH="$HOME/.local/bin:$PATH"
-uat doctor
-uat install --project ~/code/my-app --agent claude-code
+cd ~/tools/universal-agent-toolkit
+./bin/uat setup
 ```
+
+On macOS the application copy is placed in
+`~/Library/Application Support/Universal-Agent-Toolkit`; on Linux it is
+placed in `~/.local/share/universal-agent-toolkit`. Both platforms get a
+launcher at `~/.local/bin/uat`, and setup adds that directory to your shell
+profile. Open a new shell before using bare `uat`.
 
 ### Windows PowerShell
 
 ```powershell
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git "$HOME/tools/universal-agent-toolkit"
 cd "$HOME/tools/universal-agent-toolkit"
-$uatBin = (Resolve-Path .\bin).Path
-$userPath = @([Environment]::GetEnvironmentVariable('Path', 'User') -split ';' | Where-Object { $_ })
-if ($userPath -notcontains $uatBin) {
-  [Environment]::SetEnvironmentVariable('Path', (($userPath + $uatBin) -join ';'), 'User')
-}
-$env:Path = "$uatBin;$env:Path"
-uat doctor
-uat install --project "$HOME/code/my-app" --agent claude-code
+.\bin\uat.cmd setup
 ```
 
-`doctor` should end with `healthy`. See [Vendoring & provenance](VENDORING.md)
-if snapshot verification fails. Add `--dry-run` to preview installation or
-`--yes` to accept the recommended selection without prompts.
+Windows copies the application to `%LOCALAPPDATA%\Universal-Agent-Toolkit` and
+adds its `bin` directory to your user PATH without administrator access.
+Restart PowerShell (or refresh its PATH) before using bare `uat`.
 
-## 2a. PATH setup
-
-### Windows: automatic on first installation
-
-A successful non-embedded `install` adds the checkout's `bin` directory to
-**your user PATH** if `uat` is not already available. This also happens with
-`--yes`; no administrator access is needed. Existing PATH entries are
-preserved, and repeat installs do not add duplicates. `--no-path` skips this
-setup; `--dry-run`, failed installs, and `--embed` do not change PATH.
-
-The bootstrap above persists the checkout's `bin` directory and refreshes the
-current PowerShell session, so bare `uat` works immediately and in new shells.
-
-Restart your terminal application (and IDE if its terminal is embedded), or
-refresh the current PowerShell session:
-
-```powershell
-$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
-uat doctor
-```
-
-An already-running shell retains its inherited environment; see Microsoft's
-[environment documentation](https://learn.microsoft.com/en-us/windows/win32/procthread/environment-variables).
-
-For manual setup, open **Edit environment variables for your account**, edit
-**Path**, and add the full checkout `bin` path, for example
-`C:\Users\you\tools\universal-agent-toolkit\bin`. Restart your terminal.
-Remove that entry to undo setup, or update it if you move the checkout.
-Project uninstall leaves this shared CLI entry available for other projects.
-
-### macOS / Linux
-
-The bootstrap above symlinks `uat` into a user-owned directory. An install
-launched directly from a checkout offers the same setup; `--yes` and
-`--no-path` skip that prompt. For manual setup:
+Use `--dry-run` to preview setup and `--force` to replace a conflicting file:
 
 ```bash
-mkdir -p ~/.local/bin
-ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
-ln -s ~/tools/universal-agent-toolkit/bin/uat-test ~/.local/bin/uat-test
-export PATH="$HOME/.local/bin:$PATH"
-uat doctor
+./bin/uat setup --dry-run
+./bin/uat setup --force
 ```
 
-To persist the `export`, add it once to `~/.zshrc` (zsh) or `~/.bashrc` (Bash),
-then open a new terminal. The launcher resolves symlinks to find its catalog.
+`uat doctor` should end with `healthy`. See [Vendoring & provenance](VENDORING.md)
+if snapshot verification fails. For manual setup, add the copied application's
+launcher directory to PATH; do not move the git checkout.
 
 The examples below use `uat` from PATH on every operating system. For embedded
 projects, use `.agent-toolkit/toolkit/uat` on Unix or
@@ -156,7 +117,8 @@ Those tokens are what pack recommendation runs on.
 Never necessary, always cheap:
 
 ```bash
-uat install --project ~/app --agent claude-code --dry-run
+cd ~/app
+uat install --agent claude-code --dry-run
 ```
 
 It prints the plan, then every file it would create, change or skip. Nothing
@@ -166,7 +128,8 @@ safe in scripts and CI.
 ## 5. Install
 
 ```bash
-uat install --project ~/app --agent claude-code
+cd ~/app
+uat install --agent claude-code
 ```
 
 Without `--yes`, and on a terminal, setup is progressive. It asks about the
@@ -199,7 +162,7 @@ Select packs to install
   ENGINEERING
 >  [x] Engineering principles (SOLID, DRY, KISS)  default
    [x] Karpathy guidelines                 default
-   [x] Ponytail minimal-change engineering default
+   [ ] Ponytail minimal-change engineering (optional; select it explicitly)
   BROWSER QUALITY
    [x] Playwright MCP (browser)            detected: frontend
   ...
@@ -223,7 +186,7 @@ such as `--planning off`, `--technology-additions auto`, `--acceptance full`,
 [Packs & profiles](PACKS.md) for what gets recommended and why.
 
 > A bare `uat install --agent <id> --yes` with no `--profile`, `--packs` or
-> detected stack installs the **core tier only** — five packs. That is a
+> detected stack installs the **core tier only** — four packs. That is a
 > deliberate floor, not a full setup. For a real project, pick a profile or
 > use the interactive list.
 
