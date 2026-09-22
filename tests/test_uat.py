@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from uat import embed as embedlib          # noqa: E402
 from uat import install as inst          # noqa: E402
+from uat import cli                       # noqa: E402
 from uat import setup                     # noqa: E402
 from uat import vendorlib                 # noqa: E402
 from uat.catalog import Catalog           # noqa: E402
@@ -376,6 +377,66 @@ class TestSetup(unittest.TestCase):
             self.source, destination, force=False, report=Report(dry_run=True)
         )
         self.assertFalse(destination.exists())
+
+    def test_unix_setup_creates_launcher_and_idempotent_profile_block(self):
+        self._populate_source()
+        profile = self.home / ".profile"
+        profile.write_text("export OTHER=value\n", encoding="utf-8")
+
+        setup.setup_toolkit(
+            self.source,
+            platform="linux",
+            home=self.home,
+            env={"SHELL": "/bin/bash"},
+            profile_override=profile,
+        )
+        launcher = self.home / ".local/bin/uat"
+        self.assertTrue(launcher.is_symlink())
+        first = profile.read_text(encoding="utf-8")
+        self.assertIn(".local/bin", first)
+
+        setup.setup_toolkit(
+            self.source,
+            platform="linux",
+            home=self.home,
+            env={"SHELL": "/bin/bash"},
+            profile_override=profile,
+        )
+        self.assertEqual(profile.read_text(encoding="utf-8"), first)
+
+    def test_unix_setup_dry_run_does_not_write_launcher_or_profile(self):
+        self._populate_source()
+        profile = self.home / ".zprofile"
+        setup.setup_toolkit(
+            self.source,
+            platform="darwin",
+            home=self.home,
+            env={"SHELL": "/bin/zsh"},
+            profile_override=profile,
+            dry_run=True,
+        )
+        self.assertFalse((self.home / ".local/bin/uat").exists())
+        self.assertFalse(profile.exists())
+
+    def test_windows_setup_registers_copied_bin(self):
+        self._populate_source()
+        local_app_data = self.tmp / "local"
+        with patch("uat.setup.add_to_user_path") as add:
+            setup.setup_toolkit(
+                self.source,
+                platform="win32",
+                home=self.home,
+                env={"LOCALAPPDATA": str(local_app_data)},
+            )
+        add.assert_called_once_with(
+            str(local_app_data / "Universal-Agent-Toolkit/bin")
+        )
+
+    def test_parser_exposes_setup_flags(self):
+        args = cli.build_parser().parse_args(["setup", "--dry-run", "--force"])
+        self.assertEqual(args.cmd, "setup")
+        self.assertTrue(args.dry_run)
+        self.assertTrue(args.force)
 
 
 # ----------------------------------------------------------------------

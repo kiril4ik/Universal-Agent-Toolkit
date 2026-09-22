@@ -10,6 +10,7 @@ from pathlib import Path
 
 from . import embed as embedlib
 from . import install as inst
+from . import setup as setuplib
 from . import vendorlib
 from .catalog import Catalog, TIERS
 from .detect import detect, looks_like_new_project
@@ -511,6 +512,29 @@ def cmd_install(args) -> int:
     return 0 if result.ok else 2
 
 
+def cmd_setup(args) -> int:
+    result = setuplib.setup_toolkit(
+        TOOLKIT_ROOT,
+        force=args.force,
+        dry_run=args.dry_run,
+    )
+    print(bold("Toolkit setup"))
+    print(f"  source       {TOOLKIT_ROOT}")
+    print(f"  application  {result.paths.app_dir}")
+    print(f"  launcher     {result.paths.launcher}")
+    rendered = result.report.render(result.paths.app_dir, verbose=args.verbose)
+    if rendered:
+        print(rendered)
+    print()
+    if args.dry_run:
+        print(bold("Dry run - no changes written"))
+    else:
+        print(green(bold("Toolkit setup complete.")))
+    for note in result.notes:
+        print(dim(f"  {note}"))
+    return 2 if result.report.conflicts() else 0
+
+
 def _do_embed(
     project: Path, *, with_vendor: bool, force: bool, verbose: bool,
     dry_run: bool = False,
@@ -932,6 +956,16 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--recommend", action="store_true",
                    help="show matching packs and their exact content")
     d.set_defaults(func=cmd_detect)
+
+    s = sub.add_parser(
+        "setup",
+        help="copy the toolkit to its per-user location and set up PATH",
+    )
+    s.add_argument("--dry-run", action="store_true",
+                   help="show setup changes without writing")
+    s.add_argument("--force", action="store_true",
+                   help="replace conflicting setup files")
+    s.set_defaults(func=cmd_setup)
 
     i = sub.add_parser("install", help="install the toolkit into a project")
     i.add_argument("--project", default=".", help="target project directory")
