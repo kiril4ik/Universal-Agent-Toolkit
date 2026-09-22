@@ -100,6 +100,7 @@ def _profile_block() -> str:
 def _setup_unix_launcher(
     paths: SetupPaths,
     *,
+    legacy_launcher: Path,
     force: bool,
     report: Report,
 ) -> None:
@@ -111,7 +112,8 @@ def _setup_unix_launcher(
         if link.is_symlink() and Path(os.readlink(link)) == Path(relative_target):
             report.record(SAME, link, f"-> {relative_target}")
             return
-        if not force:
+        is_legacy_link = link.is_symlink() and link.resolve() == legacy_launcher.resolve()
+        if not force and not is_legacy_link:
             report.record(CONFLICT, link, "existing launcher kept; use --force to replace")
             return
         if not report.dry_run:
@@ -166,7 +168,12 @@ def setup_toolkit(
         if profile is None:
             raise ToolkitError("could not choose a Unix shell profile")
         unix_paths = SetupPaths(paths.app_dir, paths.bin_dir, paths.launcher, profile)
-        _setup_unix_launcher(unix_paths, force=force, report=report)
+        _setup_unix_launcher(
+            unix_paths,
+            legacy_launcher=source / "bin" / "uat",
+            force=force,
+            report=report,
+        )
         _setup_unix_profile(profile, report=report)
         notes.append(f"Open a new shell to load PATH from {profile}.")
         notes.append(f"For this shell: export PATH=\"$HOME/{UNIX_BIN}:$PATH\"")

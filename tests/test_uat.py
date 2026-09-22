@@ -432,6 +432,26 @@ class TestSetup(unittest.TestCase):
             str(local_app_data / "Universal-Agent-Toolkit/bin")
         )
 
+    def test_unix_setup_replaces_legacy_checkout_launcher(self):
+        self._populate_source()
+        launcher = self.home / ".local/bin/uat"
+        launcher.parent.mkdir(parents=True)
+        launcher.symlink_to(self.source / "bin/uat")
+
+        result = setup.setup_toolkit(
+            self.source,
+            platform="linux",
+            home=self.home,
+            env={"SHELL": "/bin/bash"},
+            profile_override=self.home / ".profile",
+        )
+
+        self.assertEqual(
+            launcher.resolve(),
+            (self.home / ".local/share/universal-agent-toolkit/bin/uat").resolve(),
+        )
+        self.assertEqual(result.report.counts().get("conflict", 0), 0)
+
     def test_parser_exposes_setup_flags(self):
         args = cli.build_parser().parse_args(["setup", "--dry-run", "--force"])
         self.assertEqual(args.cmd, "setup")
