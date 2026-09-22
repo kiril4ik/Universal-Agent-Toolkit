@@ -226,6 +226,13 @@ class TestInstallScoping(TempProject):
                   if a.path.endswith("AGENTS.md") and a.kind == "add"]
         self.assertEqual(len(writes), 1, "AGENTS.md written more than once")
 
+    def test_codex_then_cursor_does_not_conflict_on_shared_agents_file(self):
+        result = self.install(["codex", "cursor"])
+        self.assertFalse(result.report.conflicts())
+        writes = [a for a in result.report.actions
+                  if a.path.endswith("AGENTS.md") and a.kind == "add"]
+        self.assertEqual(len(writes), 1, "AGENTS.md written more than once")
+
 
 # ----------------------------------------------------------------------
 class TestSkillMounting(TempProject):
