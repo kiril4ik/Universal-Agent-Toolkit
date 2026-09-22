@@ -7,7 +7,8 @@ planning workflow into any project — **for the coding agent you actually use,
 and nothing else.**
 
 ```bash
-uat install --project ~/code/my-app --agent claude-code
+cd ~/code/my-app
+uat install --agent claude-code
 ```
 
 That creates exactly one folder, `.agent-toolkit/`, plus the two or three
@@ -43,7 +44,8 @@ repository and gets out of the way.
 It can install and configure:
 
 - engineering-discipline **skills** (brainstorming, TDD, systematic debugging,
-  verification, code review), plus Ponytail's minimal-change engineering skills
+  verification, code review), plus optional Ponytail minimal-change engineering
+  skills when you select that pack
 - **engineering principles** — SOLID, DRY, KISS, YAGNI, clean code and
   commenting, installed by default
 - stack **rules** and best practices — 41 curated packs, plus ~410 more
@@ -87,13 +89,21 @@ This repository separates two jobs:
 ## Where this repository lives
 
 **Not inside your project.** This repo is the *factory* — `bin/ src/ catalog/
-vendor/` are build material, not something you copy into an app. Keep one
-copy anywhere:
+vendor/` are build material, not something you copy into an app. Keep a
+checkout anywhere, then use `uat setup` to copy the runnable toolkit into the
+standard per-user location for your operating system:
 
 ```bash
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git ~/tools/universal-agent-toolkit
-# Put its bin/ directory on PATH as shown in Quick start, then:
-uat install --project ~/code/my-app --agent claude-code
+cd ~/tools/universal-agent-toolkit
+./bin/uat setup
+```
+
+After opening a new shell, start from the project folder:
+
+```bash
+cd ~/code/my-app
+uat install --agent claude-code
 ```
 
 Use it to bootstrap as many projects as you like:
@@ -135,35 +145,37 @@ You can also embed later, into an already-configured project:
 ```powershell
 git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git "$HOME/tools/universal-agent-toolkit"
 cd "$HOME/tools/universal-agent-toolkit"
-$uatBin = (Resolve-Path .\bin).Path
-$userPath = @([Environment]::GetEnvironmentVariable('Path', 'User') -split ';' | Where-Object { $_ })
-if ($userPath -notcontains $uatBin) {
-  [Environment]::SetEnvironmentVariable('Path', (($userPath + $uatBin) -join ';'), 'User')
-}
-$env:Path = "$uatBin;$env:Path"
-uat install --project "$HOME/code/my-app" --agent claude-code
+.\bin\uat.cmd setup
+# Open a new PowerShell, then:
+cd "$HOME/code/my-app"
+uat install --agent claude-code
 ```
 
-The bootstrap records `uat` on your user PATH and refreshes the current
-PowerShell session before running the installer. Other installation paths can
-also register PATH automatically.
-See [installation by operating system](docs/GETTING-STARTED.md) for prerequisites,
-PowerShell PATH refresh, and manual setup.
+`setup` copies the toolkit to `%LOCALAPPDATA%\Universal-Agent-Toolkit`, adds
+its `bin` directory to your user PATH, and preserves unrelated PATH entries.
+See [installation by operating system](docs/GETTING-STARTED.md) for
+PowerShell PATH refresh and manual setup.
 
-**macOS / Linux:** Symlink the checkout's launcher onto your PATH. It resolves
-the link back to its own catalog:
+**macOS / Linux:**
 
 ```bash
-mkdir -p ~/.local/bin
-ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
-export PATH="$HOME/.local/bin:$PATH"
+cd ~/tools/universal-agent-toolkit
+./bin/uat setup
+# Open a new shell, then:
+cd ~/code/my-app
+uat install --agent claude-code
 ```
+
+`setup` copies the toolkit to `~/Library/Application Support/Universal-Agent-Toolkit`
+on macOS or `~/.local/share/universal-agent-toolkit` on Linux, then creates a
+launcher in `~/.local/bin` and adds that directory to your shell profile.
 
 ```bash
 uat agents                    # 14 supported agents and what each one gets
 uat catalog                   # 64 packs and 6 profiles
 uat detect --recommend --project ~/app   # stack, evidence, and matching content
-uat install --project ~/app --agent claude-code
+cd ~/app
+uat install --agent claude-code
 ```
 
 Add `--dry-run` to see every file that would change before anything does.
@@ -200,7 +212,7 @@ Select packs to install
   ENGINEERING
 >  [x] Engineering principles (SOLID, DRY, KISS)  default
    [x] Karpathy guidelines                 default
-   [x] Ponytail minimal-change engineering default
+   [ ] Ponytail minimal-change engineering (optional; select it explicitly)
   BROWSER QUALITY
    [x] Playwright MCP (browser)            detected: frontend
   DESIGN CONTENT

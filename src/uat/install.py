@@ -736,7 +736,7 @@ def execute(
 
         # instruction file
         ipath = agent.instruction_path
-        if ipath:
+        if ipath and not (ipath == "AGENTS.md" and wrote_agents_md):
             target = project / ipath
             body = render.instructions_for(agent, ctx)
             if target.exists() and not force:
@@ -751,6 +751,8 @@ def execute(
                     write_text(target, body, force=force, report=report)
             else:
                 write_text(target, body, force=force, report=report)
+            if ipath == "AGENTS.md":
+                wrote_agents_md = True
 
         # shared AGENTS.md
         for extra in agent.extra_root_files:

@@ -14,15 +14,16 @@ uat catalog --unmapped         # vendored content no pack exposes
 
 | Tier | Count | When it installs |
 |---|---|---|
-| `core` | 5 | on the detection path, and through the `core` profile |
+| `core` | 4 | on the detection path, and through the `core` profile |
 | `recommended` | 10 | when the detected stack asks for it |
-| `optional` | 49 | when you ask for it, or a profile includes it |
+| `optional` | 50 | when you ask for it, or a profile includes it |
 
-**Core** is `superpowers` (engineering-discipline skills), `ponytail`
-(minimal-change engineering and review skills), `security` (OWASP
+**Core** is `superpowers` (engineering-discipline skills), `security` (OWASP
 rules), `karpathy-guidelines` (anti-overcomplication guardrails) and
 `engineering-principles` (SOLID, DRY, KISS). Those apply to any codebase in
-any language, which is the bar for core.
+any language, which is the bar for core. `ponytail` remains available as an
+optional minimal-change engineering and review pack, but is not installed
+unless you explicitly select it.
 
 > **Core is not a hard override.** Detection adds it automatically, and every
 > profile inherits it, because each one `extends` the `core` profile directly
@@ -32,7 +33,7 @@ any language, which is the bar for core.
 > same packs rather than relying on the tier.
 
 > A bare `uat install --agent <id> --yes` on a project with no detectable
-> stack installs the core tier only — five packs. That is the floor, not a
+> stack installs the core tier only — four packs. That is the floor, not a
 > setup. Pick a profile or use the interactive list for real work.
 
 ## How packs get selected
@@ -74,12 +75,12 @@ Symfony, Vue, MySQL or Flutter rules polluting the agent's context.
 
 | Profile | Packs | For |
 |---|---|---|
-| `core` | 7 | the floor plus safety essentials |
-| `frontend` | 13 | any browser UI |
-| `nextjs` | 21 | Next.js + React + Tailwind + TypeScript |
-| `laravel-react` | 22 | Laravel API with a React front end |
-| `python-api` | 14 | FastAPI / Django services |
-| `design` | 16 | UI/UX, design systems, Figma, visual verification |
+| `core` | 6 | the floor plus safety essentials |
+| `frontend` | 12 | any browser UI |
+| `nextjs` | 20 | Next.js + React + Tailwind + TypeScript |
+| `laravel-react` | 21 | Laravel API with a React front end |
+| `python-api` | 13 | FastAPI / Django services |
+| `design` | 15 | UI/UX, design systems, Figma, visual verification |
 
 Profiles compose with `extends`, so `nextjs` inherits everything in
 `frontend` and adds to it. Nothing is duplicated between them.

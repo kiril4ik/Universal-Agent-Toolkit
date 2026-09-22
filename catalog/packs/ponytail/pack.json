@@ -1,7 +1,7 @@
 {
   "id": "ponytail",
   "title": "Ponytail minimal-change engineering",
-  "tier": "core",
+  "tier": "optional",
   "category": "engineering",
   "tags": [
     "process",

@@ -12,7 +12,7 @@ uat status --project .
 ```
 
 If this errors, nothing is installed in this directory. If it prints a pack
-count of `5`, you have the core tier only — a bare
+count of `4`, you have the core tier only — a bare
 `install --yes` with no profile and no detectable stack installs the floor,
 not a setup.
 
@@ -59,25 +59,25 @@ open an issue. Agents with `confidence: medium` are the likely candidates.
 
 ## `zsh: command not found: uat`
 
-There is no install step, so `uat` is not on your PATH until you put it
-there. The checkout provides the launcher at `bin/uat`; link it into a
-directory on PATH:
+Run setup from a toolkit checkout so the reusable CLI is copied to its
+per-user location and `uat` is placed on PATH:
 
 ```bash
-mkdir -p ~/.local/bin
-ln -s ~/tools/universal-agent-toolkit/bin/uat ~/.local/bin/uat
-export PATH="$HOME/.local/bin:$PATH"
+cd ~/tools/universal-agent-toolkit
+./bin/uat setup
 ```
 
-The launcher resolves symlink chains, so the link finds its own `src/` and
-`catalog/` wherever it lives.
+Open a new shell after setup. On macOS the application copy lives in
+`~/Library/Application Support/Universal-Agent-Toolkit`; on Linux it lives in
+`~/.local/share/universal-agent-toolkit`. The launcher at `~/.local/bin/uat`
+then finds its own `src/` and `catalog/`.
 
 **This matters beyond convenience.** A non-embedded install writes bare `uat`
 into `.agent-toolkit/CORE.md`, and workflow phase 05 installs the stack's rule
 packs by running it. Without it on PATH those instructions fail with
 `command not found` and the agent cannot install what the plan decided it
-needs. `uat install` checks for this and says so under **Manual steps
-required**, and on a terminal offers to create the symlink for you.
+needs. `uat setup` configures this shared CLI entry; `uat install` retains a
+manual fallback for checkouts that have not been set up yet.
 
 Embedded projects (`--embed`) are unaffected: they call
 `.agent-toolkit/toolkit/uat`, which needs no PATH entry.

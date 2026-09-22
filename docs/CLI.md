@@ -6,9 +6,9 @@ uat [--verbose] <command> [options]
 
 `uat` is the toolkit launcher on PATH. An embedded project can instead use
 `.agent-toolkit/toolkit/uat` on Unix or `.\.agent-toolkit\toolkit\uat.cmd`
-on Windows. A successful Windows non-embedded install sets up user PATH
-automatically; the initial setup also documents how to put it on PATH before
-the first command. See [PATH setup](GETTING-STARTED.md#2a-path-setup).
+on Windows. Run `./bin/uat setup` from a toolkit checkout first to copy the
+reusable CLI to its per-user location and configure PATH. See [getting
+started](GETTING-STARTED.md#2-set-up-the-reusable-cli).
 `--verbose` is global and makes the change report list unchanged files too,
 not only additions and conflicts.
 
@@ -20,6 +20,7 @@ current directory).
 | [`agents`](#uat-agents) | list supported coding agents |
 | [`catalog`](#uat-catalog) | list packs and profiles; search vendored rules |
 | [`detect`](#uat-detect) | show the detected stack and the evidence |
+| [`setup`](#uat-setup) | copy the toolkit to its per-user location and set up PATH |
 | [`install`](#uat-install) | install or extend the toolkit in a project |
 | [`add-rule`](#uat-add-rule) | install one vendored rule document with no pack |
 | [`workflow`](#uat-workflow) | planning progress and the next phase |
@@ -108,6 +109,41 @@ and is pre-selected when that token is present.
 `--recommend` also prints every matching pack and the exact rules, skills, and
 MCP servers it would add. This is the non-interactive technology-coverage
 preview used by the planning workflow.
+
+---
+
+## `uat setup`
+
+```
+uat setup [--dry-run] [--force]
+```
+
+Run this once from a toolkit checkout. It copies the runnable toolkit —
+`src/`, `catalog/`, `vendor/`, version/license files, and launchers — into the
+per-user application directory for the host operating system:
+
+| Platform | Application copy | PATH setup |
+|---|---|---|
+| Windows | `%LOCALAPPDATA%\\Universal-Agent-Toolkit` | copied `bin/` added to user PATH |
+| macOS | `~/Library/Application Support/Universal-Agent-Toolkit` | `~/.local/bin/uat` plus shell-profile PATH block |
+| Linux/other Unix | `~/.local/share/universal-agent-toolkit` | `~/.local/bin/uat` plus shell-profile PATH block |
+
+Open a new shell after setup so the PATH change is loaded. Setup never moves
+the source checkout or edits a project.
+
+| Flag | Effect |
+|---|---|
+| `--dry-run` | report copies and PATH/profile changes without writing |
+| `--force` | replace conflicting setup files; unrelated PATH entries remain |
+
+```bash
+git clone https://github.com/kiril4ik/Universal-Agent-Toolkit.git ~/tools/universal-agent-toolkit
+cd ~/tools/universal-agent-toolkit
+./bin/uat setup
+
+cd ~/code/my-app
+uat install --agent claude-code
+```
 
 ---
 
@@ -226,7 +262,8 @@ reported**, never overwritten.
 
 ```bash
 # see everything first
-uat install --project ~/app --agent claude-code --dry-run
+cd ~/app
+uat install --agent claude-code --dry-run
 
 # a Next.js project, two agents
 uat install --project ~/app --agent claude-code --agent cursor --profile nextjs

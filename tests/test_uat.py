@@ -21,6 +21,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from uat import embed as embedlib          # noqa: E402
 from uat import install as inst          # noqa: E402
+from uat import cli                       # noqa: E402
+from uat import setup                     # noqa: E402
 from uat import vendorlib                 # noqa: E402
 from uat.catalog import Catalog           # noqa: E402
 from uat.detect import detect, looks_like_new_project   # noqa: E402
@@ -224,6 +226,13 @@ class TestInstallScoping(TempProject):
                   if a.path.endswith("AGENTS.md") and a.kind == "add"]
         self.assertEqual(len(writes), 1, "AGENTS.md written more than once")
 
+    def test_codex_then_cursor_does_not_conflict_on_shared_agents_file(self):
+        result = self.install(["codex", "cursor"])
+        self.assertFalse(result.report.conflicts())
+        writes = [a for a in result.report.actions
+                  if a.path.endswith("AGENTS.md") and a.kind == "add"]
+        self.assertEqual(len(writes), 1, "AGENTS.md written more than once")
+
 
 # ----------------------------------------------------------------------
 class TestSkillMounting(TempProject):
@@ -277,10 +286,12 @@ class TestVendoredContentIsReal(TempProject):
 
 
 class TestPonytail(TempProject):
-    def test_ponytail_is_selected_by_default_but_can_be_omitted(self):
-        self.assertIn("ponytail", self.catalog.recommend(set()))
-        selected = self.catalog.expand({"superpowers"})
-        self.assertNotIn("ponytail", selected)
+    def test_ponytail_is_not_recommended_by_default(self):
+        self.assertNotIn("ponytail", self.catalog.recommend(set()))
+        self.assertNotIn("ponytail", self.catalog.resolve_profile("core"))
+
+    def test_ponytail_can_still_be_selected_explicitly(self):
+        self.assertIn("ponytail", self.catalog.expand({"ponytail"}))
 
     def test_ponytail_installs_rule_and_all_upstream_skills(self):
         self.install(["claude-code"], packs=["ponytail"])
@@ -295,6 +306,164 @@ class TestPonytail(TempProject):
             if path.is_dir() and (path / "SKILL.md").is_file()
         }
         self.assertTrue(expected.issubset(actual))
+
+
+# ----------------------------------------------------------------------
+class TestSetup(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="uat-setup-test-"))
+        self.source = self.tmp / "source"
+        self.home = self.tmp / "home"
+        self.source.mkdir()
+        self.home.mkdir()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_platform_paths_use_documented_app_directories(self):
+        self.assertEqual(
+            setup.platform_paths(
+                "win32", self.home, {"LOCALAPPDATA": str(self.tmp / "local")}
+            ).app_dir,
+            self.tmp / "local/Universal-Agent-Toolkit",
+        )
+        self.assertEqual(
+            setup.platform_paths("darwin", self.home, {}).app_dir,
+            self.home / "Library/Application Support/Universal-Agent-Toolkit",
+        )
+        self.assertEqual(
+            setup.platform_paths("linux", self.home, {}).app_dir,
+            self.home / ".local/share/universal-agent-toolkit",
+        )
+
+    def test_platform_paths_reject_missing_windows_local_app_data(self):
+        with self.assertRaises(ToolkitError):
+            setup.platform_paths("win32", self.home, {})
+
+    def _populate_source(self):
+        files = (
+            "src/uat/cli.py",
+            "catalog/agents.json",
+            "vendor/example/SOURCE.json",
+            "VERSION",
+            "LICENSE",
+            "bin/uat",
+            "bin/uat.cmd",
+            "tests/sentinel.txt",
+            "docs/sentinel.md",
+            ".git/sentinel",
+        )
+        for rel in files:
+            path = self.source / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(rel, encoding="utf-8")
+
+    def test_copy_runtime_excludes_repository_only_paths(self):
+        self._populate_source()
+        destination = self.tmp / "installed"
+        report = Report()
+
+        setup.copy_runtime(self.source, destination, force=False, report=report)
+
+        self.assertTrue((destination / "src/uat/cli.py").is_file())
+        self.assertTrue((destination / "catalog/agents.json").is_file())
+        self.assertTrue((destination / "vendor/example/SOURCE.json").is_file())
+        self.assertTrue((destination / "bin/uat.cmd").is_file())
+        self.assertFalse((destination / "tests").exists())
+        self.assertFalse((destination / "docs").exists())
+        self.assertFalse((destination / ".git").exists())
+
+        second = Report()
+        setup.copy_runtime(self.source, destination, force=False, report=second)
+        self.assertEqual(second.counts().get("conflict", 0), 0)
+
+    def test_copy_runtime_dry_run_writes_nothing(self):
+        self._populate_source()
+        destination = self.tmp / "dry-run"
+        setup.copy_runtime(
+            self.source, destination, force=False, report=Report(dry_run=True)
+        )
+        self.assertFalse(destination.exists())
+
+    def test_unix_setup_creates_launcher_and_idempotent_profile_block(self):
+        self._populate_source()
+        profile = self.home / ".profile"
+        profile.write_text("export OTHER=value\n", encoding="utf-8")
+
+        setup.setup_toolkit(
+            self.source,
+            platform="linux",
+            home=self.home,
+            env={"SHELL": "/bin/bash"},
+            profile_override=profile,
+        )
+        launcher = self.home / ".local/bin/uat"
+        self.assertTrue(launcher.is_symlink())
+        first = profile.read_text(encoding="utf-8")
+        self.assertIn(".local/bin", first)
+
+        setup.setup_toolkit(
+            self.source,
+            platform="linux",
+            home=self.home,
+            env={"SHELL": "/bin/bash"},
+            profile_override=profile,
+        )
+        self.assertEqual(profile.read_text(encoding="utf-8"), first)
+
+    def test_unix_setup_dry_run_does_not_write_launcher_or_profile(self):
+        self._populate_source()
+        profile = self.home / ".zprofile"
+        setup.setup_toolkit(
+            self.source,
+            platform="darwin",
+            home=self.home,
+            env={"SHELL": "/bin/zsh"},
+            profile_override=profile,
+            dry_run=True,
+        )
+        self.assertFalse((self.home / ".local/bin/uat").exists())
+        self.assertFalse(profile.exists())
+
+    def test_windows_setup_registers_copied_bin(self):
+        self._populate_source()
+        local_app_data = self.tmp / "local"
+        with patch("uat.setup.add_to_user_path") as add:
+            setup.setup_toolkit(
+                self.source,
+                platform="win32",
+                home=self.home,
+                env={"LOCALAPPDATA": str(local_app_data)},
+            )
+        add.assert_called_once_with(
+            str(local_app_data / "Universal-Agent-Toolkit/bin")
+        )
+
+    def test_unix_setup_replaces_legacy_checkout_launcher(self):
+        self._populate_source()
+        launcher = self.home / ".local/bin/uat"
+        launcher.parent.mkdir(parents=True)
+        launcher.symlink_to(self.source / "bin/uat")
+
+        result = setup.setup_toolkit(
+            self.source,
+            platform="linux",
+            home=self.home,
+            env={"SHELL": "/bin/bash"},
+            profile_override=self.home / ".profile",
+        )
+
+        self.assertEqual(
+            launcher.resolve(),
+            (self.home / ".local/share/universal-agent-toolkit/bin/uat").resolve(),
+        )
+        self.assertEqual(result.report.counts().get("conflict", 0), 0)
+
+    def test_parser_exposes_setup_flags(self):
+        args = cli.build_parser().parse_args(["setup", "--dry-run", "--force"])
+        self.assertEqual(args.cmd, "setup")
+        self.assertTrue(args.dry_run)
+        self.assertTrue(args.force)
 
 
 # ----------------------------------------------------------------------
