@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from uat import embed as embedlib          # noqa: E402
 from uat import install as inst          # noqa: E402
+from uat import setup                     # noqa: E402
 from uat import vendorlib                 # noqa: E402
 from uat.catalog import Catalog           # noqa: E402
 from uat.detect import detect, looks_like_new_project   # noqa: E402
@@ -297,6 +298,84 @@ class TestPonytail(TempProject):
             if path.is_dir() and (path / "SKILL.md").is_file()
         }
         self.assertTrue(expected.issubset(actual))
+
+
+# ----------------------------------------------------------------------
+class TestSetup(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="uat-setup-test-"))
+        self.source = self.tmp / "source"
+        self.home = self.tmp / "home"
+        self.source.mkdir()
+        self.home.mkdir()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_platform_paths_use_documented_app_directories(self):
+        self.assertEqual(
+            setup.platform_paths(
+                "win32", self.home, {"LOCALAPPDATA": str(self.tmp / "local")}
+            ).app_dir,
+            self.tmp / "local/Universal-Agent-Toolkit",
+        )
+        self.assertEqual(
+            setup.platform_paths("darwin", self.home, {}).app_dir,
+            self.home / "Library/Application Support/Universal-Agent-Toolkit",
+        )
+        self.assertEqual(
+            setup.platform_paths("linux", self.home, {}).app_dir,
+            self.home / ".local/share/universal-agent-toolkit",
+        )
+
+    def test_platform_paths_reject_missing_windows_local_app_data(self):
+        with self.assertRaises(ToolkitError):
+            setup.platform_paths("win32", self.home, {})
+
+    def _populate_source(self):
+        files = (
+            "src/uat/cli.py",
+            "catalog/agents.json",
+            "vendor/example/SOURCE.json",
+            "VERSION",
+            "LICENSE",
+            "bin/uat",
+            "bin/uat.cmd",
+            "tests/sentinel.txt",
+            "docs/sentinel.md",
+            ".git/sentinel",
+        )
+        for rel in files:
+            path = self.source / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(rel, encoding="utf-8")
+
+    def test_copy_runtime_excludes_repository_only_paths(self):
+        self._populate_source()
+        destination = self.tmp / "installed"
+        report = Report()
+
+        setup.copy_runtime(self.source, destination, force=False, report=report)
+
+        self.assertTrue((destination / "src/uat/cli.py").is_file())
+        self.assertTrue((destination / "catalog/agents.json").is_file())
+        self.assertTrue((destination / "vendor/example/SOURCE.json").is_file())
+        self.assertTrue((destination / "bin/uat.cmd").is_file())
+        self.assertFalse((destination / "tests").exists())
+        self.assertFalse((destination / "docs").exists())
+        self.assertFalse((destination / ".git").exists())
+
+        second = Report()
+        setup.copy_runtime(self.source, destination, force=False, report=second)
+        self.assertEqual(second.counts().get("conflict", 0), 0)
+
+    def test_copy_runtime_dry_run_writes_nothing(self):
+        self._populate_source()
+        destination = self.tmp / "dry-run"
+        setup.copy_runtime(
+            self.source, destination, force=False, report=Report(dry_run=True)
+        )
+        self.assertFalse(destination.exists())
 
 
 # ----------------------------------------------------------------------
