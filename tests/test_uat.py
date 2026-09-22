@@ -277,10 +277,12 @@ class TestVendoredContentIsReal(TempProject):
 
 
 class TestPonytail(TempProject):
-    def test_ponytail_is_selected_by_default_but_can_be_omitted(self):
-        self.assertIn("ponytail", self.catalog.recommend(set()))
-        selected = self.catalog.expand({"superpowers"})
-        self.assertNotIn("ponytail", selected)
+    def test_ponytail_is_not_recommended_by_default(self):
+        self.assertNotIn("ponytail", self.catalog.recommend(set()))
+        self.assertNotIn("ponytail", self.catalog.resolve_profile("core"))
+
+    def test_ponytail_can_still_be_selected_explicitly(self):
+        self.assertIn("ponytail", self.catalog.expand({"ponytail"}))
 
     def test_ponytail_installs_rule_and_all_upstream_skills(self):
         self.install(["claude-code"], packs=["ponytail"])
